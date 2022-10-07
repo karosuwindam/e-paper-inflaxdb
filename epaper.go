@@ -16,6 +16,10 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+var (
+	M2in7bw = epaper.Model{Width: 176, Height: 264, StartTransmission: 0x13}
+)
+
 func ESetup() (*epaper.EPaper, error) {
 	epd, err := epaper.New(M2in7bw)
 	if err != nil {
