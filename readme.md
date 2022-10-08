@@ -18,6 +18,10 @@ sudo apt install fonts-ipaexfont -y
 curl http://192.168.0.6:8086/query?db=senser --data-urlencode "q=SELECT * FROM senser_data WHERE time >= '2022-10-07T02:54:00Z' AND type='co2'"|jq
 
 
+## 自動起動について
+epaperifdb.service ファイルを/etc/systemd/system/に置くことでsystemctlコマンドで制御可能実行用のスクリプトは対象場所におく
+
+
 ## 閾値について
 
 積み重ねの値で、99パーセントを超えるものは取得値から排除

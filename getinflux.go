@@ -92,7 +92,10 @@ func influxdbday(dayago int, datatype string) dataformat {
 	}
 
 	client := new(http.Client)
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return dataformat{}
+	}
 	defer resp.Body.Close()
 
 	byteArray, _ := ioutil.ReadAll(resp.Body)
@@ -156,7 +159,10 @@ func influxdbBack(backdate time.Duration, datatype string) dataformat {
 	}
 
 	client := new(http.Client)
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return dataformat{}
+	}
 	defer resp.Body.Close()
 
 	byteArray, _ := ioutil.ReadAll(resp.Body)

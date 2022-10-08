@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,13 +20,51 @@ const (
 	TABLE = "senser_data"
 )
 
+func networkcheck() error {
+
+	urldata := "http://" + IP + ":" + Port
+	if req, err := http.NewRequest("GET",
+		urldata,
+		nil,
+	); err != nil {
+		return err
+	} else {
+
+		client := new(http.Client)
+		resp, err := client.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+	}
+	return nil
+}
+
 func main() {
 	epd, err := ESetup()
-
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+	for i := 0; i < 3; i++ {
+		if i == 0 {
+			time.Sleep(time.Millisecond * 500)
+		} else {
+			time.Sleep(time.Minute)
+		}
+		if err := networkcheck(); err == nil {
+			break
+		} else {
+			log.Println(err)
+			log.Println("err count:", i)
+		}
+		if i == 2 {
+			fmt.Println("network err", IP, Port)
+			return
+		}
+	}
+
 	epd.Init()
 
 	ctx := context.Background()
@@ -39,6 +79,10 @@ func main() {
 			tmpdate1d := influxdbday(1, "tmp")
 			humdata := influxdbBack(time.Minute*10, "hum")
 			humdata6h := influxdbBack(time.Hour*6, "hum")
+			if tmpdate1d.avg == 0 && tmpdata.max == 0 {
+				time.Sleep(time.Microsecond * 500)
+				continue
+			}
 			output := []string{
 				time.Now().Format("15:04:05"),
 				"-気温(昨日)",

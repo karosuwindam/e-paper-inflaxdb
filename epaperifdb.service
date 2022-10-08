@@ -1,0 +1,12 @@
+[Unit]
+Description=E-Ink DisPlay OutPut Data
+
+
+[Service]
+User=pi
+Group=pi
+ExecStart=/home/pi/e-paper.sh
+After=networking.service
+
+[Install]
+WantedBy=multi-user.target
