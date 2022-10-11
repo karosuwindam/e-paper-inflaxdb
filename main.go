@@ -81,6 +81,7 @@ func main() {
 			humdata6h := influxdbBack(time.Hour*6, "hum")
 			if tmpdate1d.avg == 0 && tmpdata.max == 0 {
 				time.Sleep(time.Microsecond * 500)
+				log.Println("err read data")
 				continue
 			}
 			output := []string{

@@ -37,6 +37,10 @@ type tmpNum struct {
 	c   int
 }
 
+const (
+	CKDATAP = 80
+)
+
 func ckdata(data []float64) []float64 {
 	tData := dataformat{}
 	for i, num := range data {
@@ -56,14 +60,14 @@ func ckdata(data []float64) []float64 {
 	var cktmp []tmpNum
 	for _, num := range data {
 		tmp := math.Log10((num - tData.min + 1) / (tData.avg - tData.min + 1))
-		tmp = math.Ceil(math.Abs(tmp) * 2)
+		tmp = math.Ceil(math.Abs(tmp) * 10)
 		tt := tmpNum{num: num, c: int(tmp)}
 		cktmp = append(cktmp, tt)
 	}
 	sort.Slice(cktmp, func(i, j int) bool { return cktmp[i].c < cktmp[j].c })
 	count := 0
 	for i := 0; i < len(cktmp); i++ {
-		if i < len(cktmp)*3/5 {
+		if i < len(cktmp)*CKDATAP/100 {
 			count = cktmp[i].c
 		}
 		if count == cktmp[i].c {
