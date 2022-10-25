@@ -41,6 +41,10 @@ func networkcheck() error {
 	return nil
 }
 
+func sensibleTemp(tmp, hum float64) float64 {
+	return 37.0 - (37.0-tmp)/(0.68-0.0014*hum+1/(1.76+1.4)) - 0.29*tmp*(1-hum/100)
+}
+
 func main() {
 	epd, err := ESetup()
 	if err != nil {
@@ -88,6 +92,7 @@ func main() {
 				time.Now().Format("15:04:05"),
 				"-気温(昨日)",
 				fmt.Sprintf(" 現時点:%.1f", tmpdata.avg),
+				fmt.Sprintf(" 体感　:%.1f", sensibleTemp(tmpdata.avg, humdata.avg)),
 				fmt.Sprintf(" 平均6h:%.1f(%.1f)", tmpdata6h.avg, tmpdate1d.avg),
 				fmt.Sprintf(" 最大6h:%.1f(%.1f)", tmpdata6h.max, tmpdate1d.max),
 				fmt.Sprintf(" 最小6h:%.1f(%.1f)", tmpdata6h.min, tmpdate1d.min),
