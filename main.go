@@ -89,7 +89,7 @@ func main() {
 				continue
 			}
 			output := []string{
-				time.Now().Format("15:04:05"),
+				time.Now().Format("01/02 15:04:05"),
 				"-気温(昨日)",
 				fmt.Sprintf(" 現時点:%.1f", tmpdata.avg),
 				fmt.Sprintf(" 体感　:%.1f", sensibleTemp(tmpdata.avg, humdata.avg)),
