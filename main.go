@@ -117,7 +117,7 @@ loop:
 		case <-ctx.Done():
 			stopdone <- struct{}{}
 			break loop
-		case <-time.After(time.Minute * 1): //5分
+		case <-time.After(time.Minute * 5): //5分
 			ePaperUpdate()
 		}
 	}
