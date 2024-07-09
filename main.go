@@ -2,41 +2,39 @@ package main
 
 import (
 	"context"
+	"epaperifdb/epaper"
+	"epaperifdb/getinflux"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"golang.org/x/sync/errgroup"
 )
 
 const (
-	IP    = "192.168.0.6"
-	Port  = "8086"
-	DB    = "senser"
-	TABLE = "senser_data"
+	IP       = "192.168.0.6"
+	Port     = "8086"
+	INFLUXDB = "http://192.168.0.6:8086"
+	DB       = "senser"
+	TABLE    = "senser_data"
 )
 
 func networkcheck() error {
 
-	urldata := "http://" + IP + ":" + Port
 	if req, err := http.NewRequest("GET",
-		urldata,
+		INFLUXDB,
 		nil,
 	); err != nil {
 		return err
 	} else {
-
 		client := new(http.Client)
 		resp, err := client.Do(req)
 		if err != nil {
 			return err
 		}
 		defer resp.Body.Close()
-
 	}
 	return nil
 }
@@ -46,68 +44,126 @@ func sensibleTemp(tmp, hum float64) float64 {
 }
 
 func main() {
-	epd, err := ESetup()
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	for i := 0; i < 3; i++ {
-		if i == 0 {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	var errch chan error = make(chan error, 1)
+	var shutdown chan struct{} = make(chan struct{}, 1)
+	go func() {
+		i := 0
+		for {
+			if err := networkcheck(); err == nil {
+				errch <- err
+				break
+			} else {
+				errch <- err
+			}
+			i++
+			if i > 3 {
+				shutdown <- struct{}{}
+				break
+			}
 			time.Sleep(time.Millisecond * 500)
-		} else {
-			time.Sleep(time.Minute)
 		}
-		if err := networkcheck(); err == nil {
-			break
-		} else {
-			log.Println(err)
-			log.Println("err count:", i)
-		}
-		if i == 2 {
-			fmt.Println("network err", IP, Port)
+	}()
+loop:
+	for {
+		select {
+		case err := <-errch:
+			if err == nil {
+				logger.Info("InfluxDB Server Pass OK")
+				break loop
+			} else {
+				logger.Warn(err.Error())
+			}
+		case <-shutdown:
+			logger.Error("network err", "url", INFLUXDB)
 			return
 		}
 	}
-
-	epd.Init()
-
-	ctx := context.Background()
-	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-	defer stop()
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		for {
-			co2data := influxdbBack(time.Minute*10, "co2")
-			tmpdata := influxdbBack(time.Minute*10, "tmp")
-			tmpdata6h := influxdbBack(time.Hour*6, "tmp")
-			tmpdate1d := influxdbday(1, "tmp")
-			humdata := influxdbBack(time.Minute*10, "hum")
-			humdata6h := influxdbBack(time.Hour*6, "hum")
-			if tmpdate1d.avg == 0 && tmpdata.max == 0 {
-				time.Sleep(time.Microsecond * 500)
-				log.Println("err read data")
-				continue
-			}
-			output := []string{
-				time.Now().Format("01/02 15:04:05"),
-				"-気温(昨日)",
-				fmt.Sprintf(" 現時点:%.1f", tmpdata.avg),
-				fmt.Sprintf(" 体感　:%.1f", sensibleTemp(tmpdata.avg, humdata.avg)),
-				fmt.Sprintf(" 平均6h:%.1f(%.1f)", tmpdata6h.avg, tmpdate1d.avg),
-				fmt.Sprintf(" 最大6h:%.1f(%.1f)", tmpdata6h.max, tmpdate1d.max),
-				fmt.Sprintf(" 最小6h:%.1f(%.1f)", tmpdata6h.min, tmpdate1d.min),
-				"-湿度",
-				fmt.Sprintf(" 現時点:%.1f", humdata.avg),
-				fmt.Sprintf(" 平均6h:%.1f", humdata6h.avg),
-				"-CO2",
-				fmt.Sprintf(" 現時点:%.1f", co2data.avg),
-			}
-			epd.ClearScreen()
-			textPut(epd, 0, 0, output, 20)
-			time.Sleep(time.Minute * 5)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		if err := Run(ctx); err != nil {
+			stopdone <- struct{}{}
+			close(sigs)
 		}
-	})
-	<-ctx.Done()
-	fmt.Println("shutdown")
+	}()
+	<-sigs
+	cancel()
+	Stop()
+	logger.Info("Process Shutdown")
+}
 
+func Stop() {
+	select {
+	case <-stopdone:
+		break
+	case <-time.After(time.Millisecond * 500):
+		break
+	}
+	close(stopdone)
+}
+
+var stopdone chan struct{}
+
+func Run(ctx context.Context) error {
+	stopdone = make(chan struct{}, 1)
+	if err := ePaperUpdate(); err != nil {
+		return err
+	}
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			stopdone <- struct{}{}
+			break loop
+		case <-time.After(time.Minute * 5): //5分
+			ePaperUpdate()
+		}
+	}
+	return nil
+}
+
+func ePaperUpdate() error {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	epdApi, err := epaper.Init()
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	inluxApi, err := getinflux.Init(INFLUXDB, DB, TABLE)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	co2data := inluxApi.InfluxdbBack(time.Minute*10, "co2")
+	tmpdata := inluxApi.InfluxdbBack(time.Minute*10, "tmp")
+	tmpdata6h := inluxApi.InfluxdbBack(time.Hour*6, "tmp")
+	tmpdate1d := inluxApi.InfluxdbDay(1, "tmp")
+	humdata := inluxApi.InfluxdbBack(time.Minute*10, "hum")
+	humdata6h := inluxApi.InfluxdbBack(time.Hour*6, "hum")
+	if tmpdate1d.Avg == 0 && tmpdata.Max == 0 {
+		logger.Warn("Not read Data")
+		return nil
+	}
+
+	output := []string{
+		time.Now().Format("01/02 15:04:05"),
+		"-気温(昨日)",
+		fmt.Sprintf(" 現時点:%.1f", tmpdata.Avg),
+		fmt.Sprintf(" 体感　:%.1f", sensibleTemp(tmpdata.Avg, humdata.Avg)),
+		fmt.Sprintf(" 平均6h:%.1f(%.1f)", tmpdata6h.Avg, tmpdate1d.Avg),
+		fmt.Sprintf(" 最大6h:%.1f(%.1f)", tmpdata6h.Max, tmpdate1d.Max),
+		fmt.Sprintf(" 最小6h:%.1f(%.1f)", tmpdata6h.Min, tmpdate1d.Min),
+		"-湿度",
+		fmt.Sprintf(" 現時点:%.1f", humdata.Avg),
+		fmt.Sprintf(" 平均6h:%.1f", humdata6h.Avg),
+		"-CO2",
+		fmt.Sprintf(" 現時点:%.1f", co2data.Avg),
+	}
+	epdApi.ClearScreen()
+	epdApi.TextPut(0, 0, output, 20)
+	logger.Info("e-Paper display update")
+	return nil
 }

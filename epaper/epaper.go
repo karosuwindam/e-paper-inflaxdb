@@ -1,12 +1,12 @@
-package main
+package epaper
 
 import (
 	"bytes"
-	"fmt"
 	"image"
 	"image/draw"
 	"image/png"
 	"io/ioutil"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -20,34 +20,47 @@ var (
 	M2in7bw = epaper.Model{Width: 176, Height: 264, StartTransmission: 0x13}
 )
 
-func ESetup() (*epaper.EPaper, error) {
+var device *epaper.EPaper = nil
+
+func initEpaper() error {
+	if device != nil {
+		return nil
+	}
 	epd, err := epaper.New(M2in7bw)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return epd, nil
+	epd.Init()
+	device = epd
+	return nil
 }
-func textPut(epd *epaper.EPaper, x, y int, text []string, size float64) {
+
+func testPut(x, y int, text []string, size float64) {
 	bufferReader := bytes.NewReader(writedata(text, size))
 	image, _, err := image.Decode(bufferReader)
 	if err != nil {
 		// FIXME Better error handling.
 		panic(err)
 	}
-	epd.AddLayer(image, x, y, true)
-	epd.PrintDisplay()
+	device.AddLayer(image, x, y, true)
+	device.PrintDisplay()
+
 }
 
 func writedata(text []string, size float64) []byte {
 	// フォントファイルを読み込み
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	ftBinary, err := ioutil.ReadFile("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		// fmt.Fprintln(os.Stderr, err)
+		logger.Error(err.Error(), "fontfile", "fonts-japanese-gothic.ttf")
 		os.Exit(1)
 	}
 	ft, err := truetype.Parse(ftBinary)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		// fmt.Fprintln(os.Stderr, err)
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	fontsize := size
@@ -91,7 +104,6 @@ func writedata(text []string, size float64) []byte {
 		Dot:  fixed.Point26_6{},
 	}
 	for i := 0; i < len(text); i++ {
-		// dr.Dot.X = (fixed.I(imageWidth) - dr.MeasureString(text[i])) / 2
 		dr.Dot.X = 0
 		dr.Dot.Y = fixed.I(textTopMargin + int(fontsize)*i)
 		dr.DrawString(text[i])
@@ -99,7 +111,8 @@ func writedata(text []string, size float64) []byte {
 	buf := &bytes.Buffer{}
 	err = png.Encode(buf, img)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		// fmt.Fprintln(os.Stderr, err)
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	return buf.Bytes()
