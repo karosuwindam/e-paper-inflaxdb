@@ -157,6 +157,8 @@ func ePaperUpdate() error {
 		"-CO2",
 		fmt.Sprintf(" 現時点:%.1f", co2data.Avg),
 	}
+	epdApi.ClearScreen()
 	epdApi.TextPut(0, 0, output, 20)
+	logger.Debug("e-Paper display update")
 	return nil
 }
