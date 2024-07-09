@@ -164,6 +164,6 @@ func ePaperUpdate() error {
 	}
 	epdApi.ClearScreen()
 	epdApi.TextPut(0, 0, output, 20)
-	logger.Debug("e-Paper display update")
+	logger.Info("e-Paper display update")
 	return nil
 }
