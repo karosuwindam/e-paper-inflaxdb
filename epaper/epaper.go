@@ -30,6 +30,7 @@ func initEpaper() error {
 	if err != nil {
 		return err
 	}
+	epd.Init()
 	device = epd
 	return nil
 }

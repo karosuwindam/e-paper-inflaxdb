@@ -82,7 +82,12 @@ loop:
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	ctx, cancel := context.WithCancel(context.Background())
-	go Run(ctx)
+	go func() {
+		if err := Run(ctx); err != nil {
+			stopdone <- struct{}{}
+			close(sigs)
+		}
+	}()
 	<-sigs
 	cancel()
 	Stop()
@@ -112,7 +117,7 @@ loop:
 		case <-ctx.Done():
 			stopdone <- struct{}{}
 			break loop
-		case <-time.After(time.Minute * 5): //5分
+		case <-time.After(time.Minute * 1): //5分
 			ePaperUpdate()
 		}
 	}
