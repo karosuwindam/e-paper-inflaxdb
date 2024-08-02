@@ -79,7 +79,7 @@ loop:
 				loggere.Warn(err.Error())
 			}
 		case <-shutdown:
-			logger.Error("network err", "url", INFLUXDB)
+			loggere.Error("network err", "url", INFLUXDB)
 			return
 		}
 	}
