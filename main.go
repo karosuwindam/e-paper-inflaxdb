@@ -11,6 +11,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"errors"
 )
 
 const (
@@ -45,10 +47,11 @@ func sensibleTemp(tmp, hum float64) float64 {
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	loggere := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	var errch chan error = make(chan error, 1)
 	var shutdown chan struct{} = make(chan struct{}, 1)
+	timenow := time.Now()
 	go func() {
-		i := 0
 		for {
 			if err := networkcheck(); err == nil {
 				errch <- err
@@ -56,12 +59,13 @@ func main() {
 			} else {
 				errch <- err
 			}
-			i++
-			if i > 3 {
+			//timenowから30分経過
+			if time.Now().Sub(timenow) > time.Minute*30 {
 				shutdown <- struct{}{}
+				errch <- errors.New("time out")
 				break
 			}
-			time.Sleep(time.Millisecond * 500)
+			time.Sleep(time.Second)
 		}
 	}()
 loop:
@@ -72,7 +76,7 @@ loop:
 				logger.Info("InfluxDB Server Pass OK")
 				break loop
 			} else {
-				logger.Warn(err.Error())
+				loggere.Warn(err.Error())
 			}
 		case <-shutdown:
 			logger.Error("network err", "url", INFLUXDB)
@@ -126,14 +130,16 @@ loop:
 
 func ePaperUpdate() error {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	loggere := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+
 	epdApi, err := epaper.Init()
 	if err != nil {
-		logger.Error(err.Error())
+		loggere.Error(err.Error())
 		return err
 	}
 	inluxApi, err := getinflux.Init(INFLUXDB, DB, TABLE)
 	if err != nil {
-		logger.Error(err.Error())
+		loggere.Error(err.Error())
 		return err
 	}
 
@@ -144,7 +150,7 @@ func ePaperUpdate() error {
 	humdata := inluxApi.InfluxdbBack(time.Minute*10, "hum")
 	humdata6h := inluxApi.InfluxdbBack(time.Hour*6, "hum")
 	if tmpdate1d.Avg == 0 && tmpdata.Max == 0 {
-		logger.Warn("Not read Data")
+		loggere.Warn("Not read Data")
 		return nil
 	}
 
