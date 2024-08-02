@@ -90,7 +90,8 @@ func ckdata(data []float64) []float64 {
 }
 
 func getInfluxdbData(influx influxDBPass, timeAgo interface{}, dataType string) DataFormat {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	urlData := createReadUrlData(influx, timeAgo, dataType)
 	jsonData, err := getInfluxJsonData(urlData)
 	if err != nil {
