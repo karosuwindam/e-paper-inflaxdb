@@ -1,7 +1,9 @@
 package getinflux
 
 import (
+	"context"
 	"encoding/json"
+	"epaperifdb/config"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -9,16 +11,22 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"os"
 	"reflect"
 	"sort"
 	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type influxDBPass struct {
 	url   string
 	db    string
 	table string
+}
+
+type strReadUrlData struct {
+	timeAgo  interface{}
+	dataType string
 }
 
 type infxSeries struct {
@@ -89,23 +97,6 @@ func ckdata(data []float64) []float64 {
 	return out
 }
 
-func getInfluxdbData(influx influxDBPass, timeAgo interface{}, dataType string) DataFormat {
-	// logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
-	urlData := createReadUrlData(influx, timeAgo, dataType)
-	jsonData, err := getInfluxJsonData(urlData)
-	if err != nil {
-		logger.Error(err.Error(), "url", urlData)
-		return DataFormat{}
-	}
-	d, err := jsonDataToDataformat(jsonData)
-	if err != nil {
-		logger.Error(err.Error())
-		return DataFormat{}
-	}
-	return d
-}
-
 func jsonDataToDataformat(jsonData infxData) (DataFormat, error) {
 	if len(jsonData.Results[0].Series) != 0 {
 		tmpdata := jsonData.Results[0].Series[0]
@@ -142,53 +133,103 @@ func jsonDataToDataformat(jsonData infxData) (DataFormat, error) {
 	return DataFormat{}, errors.New("Input JsonData Not input")
 }
 
-func getInfluxJsonData(passUrl string) (infxData, error) {
+func getInfluxJsonData(ctx context.Context) (infxData, error) {
+	ctx, span := config.TracerS(ctx, "getInfluxJsonData", "get influx json data")
+	defer span.End()
 	var jsondata infxData
-	req, err := http.NewRequest("GET",
-		passUrl,
-		nil,
-	)
+
+	urlData, ok := contextReadUrl(ctx)
+	if !ok {
+		slog.ErrorContext(ctx, "contextReadUrl error")
+		return jsondata, fmt.Errorf("contextReadUrl error")
+	}
+	slog.DebugContext(ctx, "getInfluxJsonData", "urlData", urlData)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", urlData, nil)
 	if err != nil {
+		slog.ErrorContext(ctx, "http.NewRequestWithContext error", "error", err)
 		return jsondata, err
 	}
-	client := new(http.Client)
+	client := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	resp, err := client.Do(req)
 	if err != nil {
+		slog.ErrorContext(ctx, "http.Do error", "error", err)
 		return jsondata, err
 	}
 	defer resp.Body.Close()
-	byteArray, _ := ioutil.ReadAll(resp.Body)
+	byteArray, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		slog.ErrorContext(ctx, "ioutil.ReadAll error", "error", err)
+		return jsondata, err
+	}
 	if err := json.Unmarshal(byteArray, &jsondata); err != nil {
+		slog.ErrorContext(ctx, "json.Unmarshal error", "error", err)
 		return jsondata, err
 	}
 	return jsondata, nil
 }
 
-func createReadUrlData(influx influxDBPass, timeAgo interface{}, dataType string) string {
-	urlData := fmt.Sprintf("%v/query?db=%v", influx.url, influx.db)
-	bodyData := ""
-	switch timeAgo.(type) {
-	case int:
+func (influxDB *influxDBPass) getInfluxdbData(ctx context.Context, timeAgo interface{}, dataType string) DataFormat {
+	ctx, span := config.TracerS(ctx, "getInfluxdbData", "get influxdb data")
+	defer span.End()
 
-		t := time.Now().Add(-time.Hour * 24 * time.Duration(timeAgo.(int)))
+	ctx = contextWriteReadUrlData(ctx, timeAgo, dataType)
+	url := influxDB.createReadUrlData(ctx)
+
+	ctx = contextWriteUrl(ctx, url)
+	jsonData, err := getInfluxJsonData(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "getInfluxJsonData error", "error", err)
+		return DataFormat{}
+	}
+	data, err := jsonDataToDataformat(jsonData)
+	if err != nil {
+		slog.ErrorContext(ctx, "jsonDataToDataformat error", "error", err)
+		return DataFormat{}
+	}
+	return data
+}
+
+func (influxDB *influxDBPass) createReadUrlData(ctx context.Context) string {
+	ctx, span := config.TracerS(ctx, "createReadUrlData", "read url data")
+	defer span.End()
+	timedata, ok := contextReadReadUrlData(ctx)
+	if !ok {
+		slog.ErrorContext(ctx, "contextReadReadUrlData error")
+		return ""
+	}
+	urlData := fmt.Sprintf("%v/query?db=%v", influxDB.url, influxDB.db)
+	bodyData := ""
+	switch timedata.timeAgo.(type) {
+	case int:
+		t := time.Now().Add(-time.Hour * 24 * time.Duration(timedata.timeAgo.(int)))
 		aTime := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 
 		bodyData = fmt.Sprintf(
 			"SELECT * FROM %v WHERE time <='%v' AND time >= '%v' AND type = '%v'",
-			influx.table,
+			influxDB.table,
 			aTime.UTC().Format("2006-01-02T15:04:05Z"),
 			aTime.Add(-time.Hour*24).UTC().Format("2006-01-02T15:04:05Z"),
-			dataType,
+			timedata.dataType,
 		)
 	case time.Duration:
-		t := timeAgo.(time.Duration)
+		t := timedata.timeAgo.(time.Duration)
 		bodyData = fmt.Sprintf(
 			"SELECT * FROM %v WHERE time >='%v' AND type = '%v'",
-			influx.table,
+			influxDB.table,
 			time.Now().Add(-t).UTC().Format("2006-01-02T15:04:05Z"),
-			dataType,
+			timedata.dataType,
 		)
-
+	default:
+		slog.ErrorContext(ctx, "timeAgo type error")
+		return ""
 	}
+	slog.DebugContext(ctx, "createReadUrlData",
+		"url", fmt.Sprintf("%v&q=%v", urlData, url.QueryEscape(bodyData)),
+		"bodyData", bodyData,
+		"urlData", urlData,
+	)
 	return fmt.Sprintf("%v&q=%v", urlData, url.QueryEscape(bodyData))
 }
