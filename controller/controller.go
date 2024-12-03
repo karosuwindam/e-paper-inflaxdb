@@ -40,7 +40,6 @@ loop:
 			if err := ePaperUpdate(ctx); err != nil {
 				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
 			}
-		case <-shutdown:
 		case <-ctx.Done():
 			close(shutdown)
 			break loop
