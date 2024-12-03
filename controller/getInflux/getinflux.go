@@ -56,7 +56,8 @@ type tmpNum struct {
 }
 
 const (
-	CKDATAP = 80
+	CKDATAP       = 80
+	ClientTImeout = 5
 )
 
 func ckdata(data []float64) []float64 {
@@ -139,7 +140,7 @@ func getInfluxJsonData(ctx context.Context) (infxData, error) {
 	defer span.End()
 	var jsondata infxData
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*ClientTImeout)
 	defer cancel()
 
 	urlData, ok := contextReadUrl(ctx)
