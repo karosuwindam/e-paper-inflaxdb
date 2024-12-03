@@ -45,7 +45,8 @@ func testPut(ctx context.Context, x, y int, text []string, size float64) {
 	image, _, err := image.Decode(bufferReader)
 	if err != nil {
 		// FIXME Better error handling.
-		panic(err)
+		slog.ErrorContext(ctx, "imageDecode Error", "error", err)
+		return
 	}
 	device.AddLayer(image, x, y, true)
 	device.PrintDisplay()
