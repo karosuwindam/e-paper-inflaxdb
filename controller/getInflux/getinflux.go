@@ -139,6 +139,9 @@ func getInfluxJsonData(ctx context.Context) (infxData, error) {
 	defer span.End()
 	var jsondata infxData
 
+	ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
+
 	urlData, ok := contextReadUrl(ctx)
 	if !ok {
 		slog.ErrorContext(ctx, "contextReadUrl error")
