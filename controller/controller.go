@@ -21,7 +21,7 @@ func Init() error {
 func Run(ctx context.Context) error {
 	var oneshot chan bool = make(chan bool, 1)
 	oneshot <- true
-	slog.InfoContext(ctx, "Run")
+	slog.InfoContext(ctx, "Controller Run")
 loop:
 	for {
 		select {
@@ -47,7 +47,7 @@ loop:
 			break loop
 		}
 	}
-	slog.InfoContext(ctx, "Shutdown")
+	slog.InfoContext(ctx, "Controller Shutdown")
 	return nil
 }
 
