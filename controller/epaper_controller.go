@@ -26,6 +26,7 @@ func sensibleTemp(tmp, hum float64) float64 {
 func ePaperUpdate(ctx context.Context) error {
 	ctx, span := config.TracerS(ctx, "ePaperUpdate", "e-paper update")
 	defer span.End()
+	slog.DebugContext(ctx, "ePaper Update Start")
 
 	epdApi, err := epaper.Init()
 	if err != nil {
@@ -67,5 +68,7 @@ func ePaperUpdate(ctx context.Context) error {
 	epdApi.ClearScreen(ctx)
 	epdApi.TextPut(ctx, 0, 0, output, 20)
 	slog.InfoContext(ctx, "ePaperUpdate")
+	slog.DebugContext(ctx, "ePaper Update End")
+
 	return nil
 }
