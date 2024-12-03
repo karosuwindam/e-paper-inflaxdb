@@ -17,6 +17,8 @@ sudo apt install fonts-ipaexfont -y
 以下の通りにすると11:54移行でco2の情報をすべて取得
 curl http://192.168.0.6:8086/query?db=senser --data-urlencode "q=SELECT * FROM senser_data WHERE time >= '2022-10-07T02:54:00Z' AND type='co2'"|jq
 
+Prometheusの場合は以下の通り実行することで入手可能
+
 
 ## 自動起動について
 epaperifdb.service ファイルを/etc/systemd/system/に置くことでsystemctlコマンドで制御可能実行用のスクリプトは対象場所におく
