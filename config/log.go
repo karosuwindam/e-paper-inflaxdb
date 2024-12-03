@@ -6,7 +6,8 @@ import (
 	"github.com/m-mizutani/clog"
 )
 
-var logLevel slog.Leveler = slog.LevelInfo
+// var logLevel slog.Leveler = slog.LevelInfo
+var logLevel slog.Leveler = slog.LevelDebug
 
 func logHandler(level slog.Leveler) *clog.Handler {
 	return clog.New(
