@@ -32,6 +32,7 @@ loop:
 				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
 			}
 		case <-shutdown:
+			slog.DebugContext(ctx, "run shutdown")
 			done <- struct{}{}
 			break loop
 		case <-time.After(time.Minute * 5): // 5 minutes
@@ -41,6 +42,7 @@ loop:
 				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
 			}
 		case <-ctx.Done():
+			slog.DebugContext(ctx, "run ctx Done()")
 			close(shutdown)
 			break loop
 		}
