@@ -26,6 +26,7 @@ loop:
 	for {
 		select {
 		case <-oneshot:
+			slog.DebugContext(ctx, "onshot run ePaperUpdate")
 			//e-paperの更新
 			if err := ePaperUpdate(ctx); err != nil {
 				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
@@ -34,6 +35,7 @@ loop:
 			done <- struct{}{}
 			break loop
 		case <-time.After(time.Minute * 5): // 5 minutes
+			slog.DebugContext(ctx, "loop time after 5 run ePaperUpdate")
 			//e-paperの更新
 			if err := ePaperUpdate(ctx); err != nil {
 				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
