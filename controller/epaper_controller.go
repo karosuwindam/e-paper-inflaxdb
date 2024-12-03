@@ -3,10 +3,14 @@ package controller
 import (
 	"context"
 	"epaperifdb/config"
+	"epaperifdb/controller/commondata"
 	"epaperifdb/controller/epaper"
 	getinflux "epaperifdb/controller/getInflux"
+	"epaperifdb/controller/getprometheus"
+	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 )
 
@@ -33,7 +37,59 @@ func ePaperUpdate(ctx context.Context) error {
 		slog.ErrorContext(ctx, "Failed to initialize e-paper device", "error", err.Error())
 		return err
 	}
-	inluxApi, err := getinflux.Init(INFLUXDB, DB, TABLE)
+	//prometheusのデータ読み取り
+	var wg sync.WaitGroup
+	wg.Add(3)
+	var data1day chan map[string]commondata.DataFormat = make(chan map[string]commondata.DataFormat, 1)
+	go func(ctx context.Context) {
+		ctx, span1 := config.TracerS(ctx, "PrometheusRead1day", "Promethesu Read 1day")
+		defer span1.End()
+		defer wg.Done()
+		tmpdata1day, terr := getprometheus.GetPrometheusDays(ctx, 1)
+		if terr != nil {
+			slog.ErrorContext(ctx, "getpromethuesDay", "error", terr)
+			return
+		}
+		tmp := map[string]commondata.DataFormat{
+			"tmp": tmpdata1day.ConvertTmp(ctx),
+		}
+		data1day <- tmp
+	}(ctx)
+	var data6hour chan map[string]commondata.DataFormat = make(chan map[string]commondata.DataFormat, 1)
+	go func(ctx context.Context) {
+		ctx, span1 := config.TracerS(ctx, "PrometheusRead1day", "Promethesu Read 6 Hour")
+		defer span1.End()
+		defer wg.Done()
+		tmpdata6hour, terr := getprometheus.GetPrometheusBack(ctx, 6*time.Hour)
+		if terr != nil {
+			slog.ErrorContext(ctx, "getpromethuesDay", "error", terr)
+			return
+		}
+		tmp := map[string]commondata.DataFormat{
+			"tmp": tmpdata6hour.ConvertTmp(ctx),
+			"hum": tmpdata6hour.ConvertHum(ctx),
+		}
+		data6hour <- tmp
+	}(ctx)
+	var data10min chan map[string]commondata.DataFormat = make(chan map[string]commondata.DataFormat, 1)
+	go func(ctx context.Context) {
+		ctx, span1 := config.TracerS(ctx, "PrometheusRead1day", "Promethesu Read 10 Minute")
+		defer span1.End()
+		defer wg.Done()
+		tmpdata10min, terr := getprometheus.GetPrometheusBack(ctx, 10*time.Minute)
+		if terr != nil {
+			slog.ErrorContext(ctx, "getpromethuesDay", "error", terr)
+			return
+		}
+		tmp := map[string]commondata.DataFormat{
+			"tmp": tmpdata10min.ConvertTmp(ctx),
+			"co2": tmpdata10min.ConvertCO2(ctx),
+			"hum": tmpdata10min.ConvertHum(ctx),
+		}
+		data10min <- tmp
+	}(ctx)
+
+	inluxApi, err := getinflux.Init(config.OutURL.InfluxDBUrl, DB, TABLE)
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to initialize InfluxDB", "error", err.Error())
 		return err
@@ -46,9 +102,40 @@ func ePaperUpdate(ctx context.Context) error {
 	humdata := inluxApi.InfluxdbBack(ctx, time.Minute*10, "hum")
 	humdata6h := inluxApi.InfluxdbBack(ctx, time.Hour*6, "hum")
 	if tmpdate1d.Avg == 0 && tmpdata.Max == 0 {
-		slog.WarnContext(ctx, "Not read Data")
-		return nil
+		slog.WarnContext(ctx, "InfluxData Not read Data",
+			"co2data", co2data,
+			"tmpdata", tmpdata,
+			"tmpdata6h", tmpdata6h,
+			"tmpdate1d", tmpdate1d,
+			"humdata", humdata,
+			"humdata6h", humdata6h,
+		)
+		wg.Wait()
+		if len(data10min) == 0 || len(data1day) == 0 || len(data6hour) == 0 {
+			return errors.New("prometheus Not read Data")
+		}
+		tmp := <-data10min
+		co2data = tmp["co2"]
+		tmpdata = tmp["tmp"]
+		humdata = tmp["hum"]
+		tmp = <-data6hour
+		tmpdata6h = tmp["tmp"]
+		humdata6h = tmp["hum"]
+		tmp = <-data1day
+		tmpdate1d = tmp["tmp"]
 	}
+	close(data10min)
+	close(data1day)
+	close(data6hour)
+
+	slog.DebugContext(ctx, "Read Senser Data",
+		"co2data", co2data,
+		"tmpdata", tmpdata,
+		"tmpdata6h", tmpdata6h,
+		"tmpdate1d", tmpdate1d,
+		"humdata", humdata,
+		"humdata6h", humdata6h,
+	)
 
 	output := []string{
 		time.Now().Format("01/02 15:04:05"),

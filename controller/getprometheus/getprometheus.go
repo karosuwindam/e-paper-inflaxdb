@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"epaperifdb/config"
+	"epaperifdb/controller/commondata"
 	"io/ioutil"
 	"log/slog"
 	"net/http"
@@ -38,12 +39,6 @@ type prometheusValue struct {
 	Value     string
 }
 
-type DataFormat struct {
-	Max float64
-	Avg float64
-	Min float64
-}
-
 type strReadUrlData struct {
 	timeAgo  interface{}
 	dataType string
@@ -56,7 +51,7 @@ const (
 )
 
 func createPrometheusUrl(ctx context.Context, query string) string {
-	ctx, span := config.TracerS(ctx, "createPrometheusUrl", "get prometheus")
+	ctx, span := config.TracerS(ctx, "createPrometheusUrl", "crate prometheus url")
 	defer span.End()
 	slog.DebugContext(ctx, "createPrometheusUrl", "query", query)
 
@@ -65,9 +60,9 @@ func createPrometheusUrl(ctx context.Context, query string) string {
 		slog.WarnContext(ctx, "createPrometheusUrl backdata == 0")
 		return ""
 	}
-	baseUrl := BASE_URL
+	baseUrl := config.OutURL.PrometheusUrl
 	query = "senser_data"
-	baseUrl += "api/v1/query_range?query=" + query
+	baseUrl += "/api/v1/query_range?query=" + query
 	timenow := time.Now().UTC()
 	baseUrl += "&start=" + timenow.Add(-backdate).Format("2006-01-02T15:04:05.000Z")
 	baseUrl += "&end=" + timenow.Format("2006-01-02T15:04:05.000Z")
@@ -76,7 +71,7 @@ func createPrometheusUrl(ctx context.Context, query string) string {
 }
 
 func convertTimeAgoData(ctx context.Context) time.Duration {
-	ctx, span := config.TracerS(ctx, "convertTimeAgoData", "get prometheus")
+	ctx, span := config.TracerS(ctx, "convertTimeAgoData", "convert Time Ago Data")
 	defer span.End()
 	slog.DebugContext(ctx, "convertTimeAgoData")
 
@@ -98,7 +93,7 @@ func convertTimeAgoData(ctx context.Context) time.Duration {
 }
 
 func convertPrometheusData(ctx context.Context, data []byte) prometheusData {
-	ctx, span := config.TracerS(ctx, "convertPrometheusData", "get prometheus")
+	ctx, span := config.TracerS(ctx, "convertPrometheusData", "convert Prometheus Data")
 	defer span.End()
 	slog.DebugContext(ctx, "convertPrometheusData", "data", string(data))
 
@@ -112,7 +107,7 @@ func convertPrometheusData(ctx context.Context, data []byte) prometheusData {
 }
 
 func (v *prometheusData) convertTypeValue(ctx context.Context) convertTypeValues {
-	ctx, span := config.TracerS(ctx, "convertTypeValue", "get prometheus")
+	ctx, span := config.TracerS(ctx, "convertTypeValue", "convert Type Value")
 	defer span.End()
 	slog.DebugContext(ctx, "convertTypeValue", "prometheusData.Status", v.Status)
 
@@ -145,17 +140,17 @@ func (v *prometheusData) convertTypeValue(ctx context.Context) convertTypeValues
 	return value
 }
 
-func (v convertTypeValues) convertData(ctx context.Context) DataFormat {
-	ctx, span := config.TracerS(ctx, "convertData", "get prometheus")
+func (v convertTypeValues) convertData(ctx context.Context) commondata.DataFormat {
+	ctx, span := config.TracerS(ctx, "convertData", "convert Data")
 	defer span.End()
 	dataname, ok := contextReadDataName(ctx)
 	if !ok {
 		slog.WarnContext(ctx, "context not input ctxdata")
-		return DataFormat{}
+		return commondata.DataFormat{}
 	}
 	slog.DebugContext(ctx, "convertData", "dataname", dataname)
 
-	var data DataFormat
+	var data commondata.DataFormat
 	var sum float64
 	var count float64
 	if _, ok := v[dataname]; !ok {
@@ -167,7 +162,9 @@ func (v convertTypeValues) convertData(ctx context.Context) DataFormat {
 			slog.Error("strconv.ParseFloat error", "error", err)
 		}
 		if data.Max < tmp {
-			data.Max = tmp
+			if tmp <= 100 && dataname == "tmp" {
+				data.Max = tmp
+			}
 		}
 		if data.Min > tmp {
 			data.Min = tmp
@@ -183,7 +180,7 @@ func (v convertTypeValues) convertData(ctx context.Context) DataFormat {
 }
 
 func getprometheusJsonData(ctx context.Context) []byte {
-	ctx, span := config.TracerS(ctx, "getprometheusJsonData", "get prometheus")
+	ctx, span := config.TracerS(ctx, "getprometheusJsonData", "get prometheus JsonData")
 	defer span.End()
 	urldata, ok := contextReadUrl(ctx)
 	if !ok {

@@ -2,6 +2,7 @@ package getprometheus
 
 import (
 	"context"
+	"epaperifdb/controller/commondata"
 	"errors"
 	"time"
 )
@@ -51,17 +52,17 @@ func GetPrometheusBack(ctx context.Context, backTime time.Duration) (*api, error
 
 }
 
-func (a *api) ConvertCO2(ctx context.Context) DataFormat {
+func (a *api) ConvertCO2(ctx context.Context) commondata.DataFormat {
 	ctx = contextWriteDataName(ctx, "co2")
 	return a.value.convertData(ctx)
 }
 
-func (a *api) ConvertTmp(ctx context.Context) DataFormat {
+func (a *api) ConvertTmp(ctx context.Context) commondata.DataFormat {
 	ctx = contextWriteDataName(ctx, "tmp")
 	return a.value.convertData(ctx)
 }
 
-func (a *api) ConvertHum(ctx context.Context) DataFormat {
+func (a *api) ConvertHum(ctx context.Context) commondata.DataFormat {
 	ctx = contextWriteDataName(ctx, "hum")
 	return a.value.convertData(ctx)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"epaperifdb/config"
+	"epaperifdb/controller/commondata"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -44,12 +45,6 @@ type infxData struct {
 	Results []infxresults `json:"results"`
 }
 
-type DataFormat struct {
-	Max float64
-	Avg float64
-	Min float64
-}
-
 type tmpNum struct {
 	num float64
 	c   int
@@ -61,7 +56,7 @@ const (
 )
 
 func ckdata(data []float64) []float64 {
-	tData := DataFormat{}
+	tData := commondata.DataFormat{}
 	for i, num := range data {
 		tData.Avg = (tData.Avg*float64(i) + num) / float64(i+1)
 		if i == 0 {
@@ -98,7 +93,7 @@ func ckdata(data []float64) []float64 {
 	return out
 }
 
-func jsonDataToDataformat(jsonData infxData) (DataFormat, error) {
+func jsonDataToDataformat(jsonData infxData) (commondata.DataFormat, error) {
 	slog.DebugContext(context.Background(), "jsonDataToDataformat", "jsonData", jsonData)
 	if len(jsonData.Results[0].Series) != 0 {
 		tmpdata := jsonData.Results[0].Series[0]
@@ -130,9 +125,9 @@ func jsonDataToDataformat(jsonData infxData) (DataFormat, error) {
 				min = num
 			}
 		}
-		return DataFormat{max, math.Round(ave*10) / 10, min}, nil
+		return commondata.DataFormat{max, math.Round(ave*10) / 10, min}, nil
 	}
-	return DataFormat{}, errors.New("Input JsonData Not input")
+	return commondata.DataFormat{}, errors.New("Input JsonData Not input")
 }
 
 func getInfluxJsonData(ctx context.Context) (infxData, error) {
@@ -176,7 +171,7 @@ func getInfluxJsonData(ctx context.Context) (infxData, error) {
 	return jsondata, nil
 }
 
-func (influxDB *influxDBPass) getInfluxdbData(ctx context.Context, timeAgo interface{}, dataType string) DataFormat {
+func (influxDB *influxDBPass) getInfluxdbData(ctx context.Context, timeAgo interface{}, dataType string) commondata.DataFormat {
 	ctx, span := config.TracerS(ctx, "getInfluxdbData", "get influxdb data")
 	defer span.End()
 	slog.DebugContext(ctx, "getInfluxdbData", "timeAgo", timeAgo, "dataType", dataType)
@@ -188,12 +183,12 @@ func (influxDB *influxDBPass) getInfluxdbData(ctx context.Context, timeAgo inter
 	jsonData, err := getInfluxJsonData(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "getInfluxJsonData error", "error", err)
-		return DataFormat{}
+		return commondata.DataFormat{}
 	}
 	data, err := jsonDataToDataformat(jsonData)
 	if err != nil {
 		slog.ErrorContext(ctx, "jsonDataToDataformat error", "error", err)
-		return DataFormat{}
+		return commondata.DataFormat{}
 	}
 	return data
 }
