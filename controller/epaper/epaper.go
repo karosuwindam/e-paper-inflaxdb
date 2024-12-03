@@ -39,18 +39,21 @@ func initEpaper() error {
 	return nil
 }
 
-func testPut(ctx context.Context, x, y int, text []string, size float64) {
+func testPut(ctx context.Context, x, y int, text []string, size float64) error {
+	ctx, span := config.TracerS(ctx, "epaper.testPut", "epaper")
+	defer span.End()
+	slog.DebugContext(ctx, "testPut", "x", x, "y", y, "text", text, "size", size)
+
 	ctx = contextWriteWriteData(ctx, text, size)
 	bufferReader := bytes.NewReader(writedata(ctx))
 	image, _, err := image.Decode(bufferReader)
 	if err != nil {
 		// FIXME Better error handling.
-		slog.ErrorContext(ctx, "imageDecode Error", "error", err)
-		return
+		return err
 	}
 	device.AddLayer(image, x, y, true)
 	device.PrintDisplay()
-
+	return nil
 }
 
 type strWriteData struct {

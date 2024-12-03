@@ -98,6 +98,7 @@ func ckdata(data []float64) []float64 {
 }
 
 func jsonDataToDataformat(jsonData infxData) (DataFormat, error) {
+	slog.DebugContext(context.Background(), "jsonDataToDataformat", "jsonData", jsonData)
 	if len(jsonData.Results[0].Series) != 0 {
 		tmpdata := jsonData.Results[0].Series[0]
 		vid := 0
@@ -174,6 +175,7 @@ func getInfluxJsonData(ctx context.Context) (infxData, error) {
 func (influxDB *influxDBPass) getInfluxdbData(ctx context.Context, timeAgo interface{}, dataType string) DataFormat {
 	ctx, span := config.TracerS(ctx, "getInfluxdbData", "get influxdb data")
 	defer span.End()
+	slog.DebugContext(ctx, "getInfluxdbData", "timeAgo", timeAgo, "dataType", dataType)
 
 	ctx = contextWriteReadUrlData(ctx, timeAgo, dataType)
 	url := influxDB.createReadUrlData(ctx)
@@ -200,6 +202,8 @@ func (influxDB *influxDBPass) createReadUrlData(ctx context.Context) string {
 		slog.ErrorContext(ctx, "contextReadReadUrlData error")
 		return ""
 	}
+	slog.DebugContext(ctx, "createReadUrlData", "timedata", timedata)
+
 	urlData := fmt.Sprintf("%v/query?db=%v", influxDB.url, influxDB.db)
 	bodyData := ""
 	switch timedata.timeAgo.(type) {

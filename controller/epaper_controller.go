@@ -66,8 +66,12 @@ func ePaperUpdate(ctx context.Context) error {
 	}
 
 	epdApi.ClearScreen(ctx)
-	epdApi.TextPut(ctx, 0, 0, output, 20)
-	slog.InfoContext(ctx, "ePaperUpdate")
+	if err := epdApi.TextPut(ctx, 0, 0, output, 20); err != nil {
+		slog.ErrorContext(ctx, "Failed to put text", "error", err.Error())
+		return err
+	} else {
+		slog.InfoContext(ctx, "ePaperUpdate")
+	}
 	slog.DebugContext(ctx, "ePaper Update End")
 
 	return nil
