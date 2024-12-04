@@ -32,6 +32,8 @@ func ePaperUpdate(ctx context.Context) error {
 	defer span.End()
 	slog.DebugContext(ctx, "ePaper Update Start")
 
+	var co2data, tmpdata, tmpdata6h, tmpdate1d, humdata, humdata6h commondata.DataFormat
+
 	epdApi, err := epaper.Init()
 	if err != nil {
 		slog.ErrorContext(ctx, "Failed to initialize e-paper device", "error", err.Error())
@@ -42,9 +44,9 @@ func ePaperUpdate(ctx context.Context) error {
 	wg.Add(3)
 	var data1day chan map[string]commondata.DataFormat = make(chan map[string]commondata.DataFormat, 1)
 	go func(ctx context.Context) {
+		defer wg.Done()
 		ctx, span1 := config.TracerS(ctx, "PrometheusRead1day", "Promethesu Read 1day")
 		defer span1.End()
-		defer wg.Done()
 		tmpdata1day, terr := getprometheus.GetPrometheusDays(ctx, 1)
 		if terr != nil {
 			slog.ErrorContext(ctx, "getpromethuesDay", "error", terr)
@@ -57,9 +59,9 @@ func ePaperUpdate(ctx context.Context) error {
 	}(ctx)
 	var data6hour chan map[string]commondata.DataFormat = make(chan map[string]commondata.DataFormat, 1)
 	go func(ctx context.Context) {
+		defer wg.Done()
 		ctx, span1 := config.TracerS(ctx, "PrometheusRead1day", "Promethesu Read 6 Hour")
 		defer span1.End()
-		defer wg.Done()
 		tmpdata6hour, terr := getprometheus.GetPrometheusBack(ctx, 6*time.Hour)
 		if terr != nil {
 			slog.ErrorContext(ctx, "getpromethuesDay", "error", terr)
@@ -73,9 +75,9 @@ func ePaperUpdate(ctx context.Context) error {
 	}(ctx)
 	var data10min chan map[string]commondata.DataFormat = make(chan map[string]commondata.DataFormat, 1)
 	go func(ctx context.Context) {
+		defer wg.Done()
 		ctx, span1 := config.TracerS(ctx, "PrometheusRead1day", "Promethesu Read 10 Minute")
 		defer span1.End()
-		defer wg.Done()
 		tmpdata10min, terr := getprometheus.GetPrometheusBack(ctx, 10*time.Minute)
 		if terr != nil {
 			slog.ErrorContext(ctx, "getpromethuesDay", "error", terr)
@@ -94,13 +96,20 @@ func ePaperUpdate(ctx context.Context) error {
 		slog.ErrorContext(ctx, "Failed to initialize InfluxDB", "error", err.Error())
 		return err
 	}
-
-	co2data := inluxApi.InfluxdbBack(ctx, time.Minute*10, "co2")
-	tmpdata := inluxApi.InfluxdbBack(ctx, time.Minute*10, "tmp")
-	tmpdata6h := inluxApi.InfluxdbBack(ctx, time.Hour*6, "tmp")
-	tmpdate1d := inluxApi.InfluxdbDay(ctx, 1, "tmp")
-	humdata := inluxApi.InfluxdbBack(ctx, time.Minute*10, "hum")
-	humdata6h := inluxApi.InfluxdbBack(ctx, time.Hour*6, "hum")
+	ctxInlux, cancel := context.WithCancel(ctx)
+	co2data = inluxApi.InfluxdbBack(ctxInlux, time.Minute*10, "co2")
+	tmpdata = inluxApi.InfluxdbBack(ctxInlux, time.Minute*10, "tmp")
+	if co2data.Avg == 0 && tmpdata.Avg == 0 {
+		slog.WarnContext(ctx, "InfluxData Not read Data to cannceled",
+			"co2data", co2data,
+			"tmpdata", tmpdata,
+		)
+		cancel()
+	}
+	tmpdata6h = inluxApi.InfluxdbBack(ctxInlux, time.Hour*6, "tmp")
+	tmpdate1d = inluxApi.InfluxdbDay(ctxInlux, 1, "tmp")
+	humdata = inluxApi.InfluxdbBack(ctxInlux, time.Minute*10, "hum")
+	humdata6h = inluxApi.InfluxdbBack(ctxInlux, time.Hour*6, "hum")
 	if tmpdate1d.Avg == 0 && tmpdata.Max == 0 {
 		slog.WarnContext(ctx, "InfluxData Not read Data",
 			"co2data", co2data,
@@ -115,13 +124,16 @@ func ePaperUpdate(ctx context.Context) error {
 			return errors.New("prometheus Not read Data")
 		}
 		tmp := <-data10min
+		slog.DebugContext(ctx, "Read Senser Data for 10 min", "tmp", tmp)
 		co2data = tmp["co2"]
 		tmpdata = tmp["tmp"]
 		humdata = tmp["hum"]
 		tmp = <-data6hour
+		slog.DebugContext(ctx, "Read Senser Data for 6 hour", "tmp", tmp)
 		tmpdata6h = tmp["tmp"]
 		humdata6h = tmp["hum"]
 		tmp = <-data1day
+		slog.DebugContext(ctx, "Read Senser Data for 1 day", "tmp", tmp)
 		tmpdate1d = tmp["tmp"]
 	}
 	close(data10min)

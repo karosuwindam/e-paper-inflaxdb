@@ -178,6 +178,10 @@ func (influxDB *influxDBPass) getInfluxdbData(ctx context.Context, timeAgo inter
 
 	ctx = contextWriteReadUrlData(ctx, timeAgo, dataType)
 	url := influxDB.createReadUrlData(ctx)
+	if url == "" {
+		slog.ErrorContext(ctx, "createReadUrlData error")
+		return commondata.DataFormat{}
+	}
 
 	ctx = contextWriteUrl(ctx, url)
 	jsonData, err := getInfluxJsonData(ctx)
