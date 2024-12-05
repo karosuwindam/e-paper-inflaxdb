@@ -136,9 +136,6 @@ func ePaperUpdate(ctx context.Context) error {
 		slog.DebugContext(ctx, "Read Senser Data for 1 day", "tmp", tmp)
 		tmpdate1d = tmp["tmp"]
 	}
-	close(data10min)
-	close(data1day)
-	close(data6hour)
 
 	slog.DebugContext(ctx, "Read Senser Data",
 		"co2data", co2data,
