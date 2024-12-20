@@ -27,6 +27,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	golang.org/x/image v0.18.0
 	google.golang.org/grpc v1.68.0
+	periph.io/x/conn/v3 v3.7.1
+	periph.io/x/host/v3 v3.8.2
 )
 
 require (

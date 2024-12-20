@@ -36,6 +36,8 @@ github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T
 github.com/hqbobo/text2pic v0.0.0-20180823042751-2479e146d720 h1:ZjeibvTQbGmB4y/k+1QzEbDzR4qbDjzMKTyycLz6aLY=
 github.com/hqbobo/text2pic v0.0.0-20180823042751-2479e146d720/go.mod h1:fgapft0wMijV8gctq6YgKjnIwLk8mQfrCDJmhz8n4xI=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=
+github.com/jonboulle/clockwork v0.4.0/go.mod h1:xgRqUGwRcjKCO1vbZUEtSLrqKoPSsUpK7fnezOII0kc=
 github.com/k0kubun/pp/v3 v3.2.0 h1:h33hNTZ9nVFNP3u2Fsgz8JXiF5JINoZfFq4SvKJwNcs=
 github.com/k0kubun/pp/v3 v3.2.0/go.mod h1:ODtJQbQcIRfAD3N+theGCV1m/CBxweERz2dapdz1EwA=
 github.com/m-mizutani/clog v0.0.7 h1:yZstkXZ44gM1MqXeO30e0E0SCzoiKmO5uUDcmBfhha8=
@@ -137,5 +139,9 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+periph.io/x/conn/v3 v3.7.1 h1:tMjNv3WO8jEz/ePuXl7y++2zYi8LsQ5otbmqGKy3Myg=
+periph.io/x/conn/v3 v3.7.1/go.mod h1:c+HCVjkzbf09XzcqZu/t+U8Ss/2QuJj0jgRF6Nye838=
+periph.io/x/host/v3 v3.8.2 h1:ayKUDzgUCN0g8+/xM9GTkWaOBhSLVcVHGTfjAOi8OsQ=
+periph.io/x/host/v3 v3.8.2/go.mod h1:yFL76AesNHR68PboofSWYaQTKmvPXsQH2Apvp/ls/K4=
 periph.io/x/periph v3.6.8+incompatible h1:lki0ie6wHtvlilXhIkabdCUQMpb5QN4Fx33yNQdqnaA=
 periph.io/x/periph v3.6.8+incompatible/go.mod h1:EWr+FCIU2dBWz5/wSWeiIUJTriYv9v2j2ENBmgYyy7Y=
