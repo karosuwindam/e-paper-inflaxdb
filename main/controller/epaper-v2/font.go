@@ -3,6 +3,7 @@ package epaperv2
 import (
 	"bytes"
 	"context"
+	"epaperifdb/config"
 	"image"
 	"image/draw"
 	"image/png"
@@ -33,8 +34,14 @@ type strWriteData struct {
 	size float64
 }
 
-func writedata(data strWriteData) []byte {
-	ctx := context.TODO()
+func writedata(ctx context.Context) []byte {
+	ctx, span := config.TracerS(ctx, "epaper.writedata", "epaper")
+	defer span.End()
+	data, ok := contextReadWriteData(ctx)
+	if !ok {
+		slog.ErrorContext(ctx, "Failed to get data from context")
+		return nil
+	}
 	// フォントファイルを読み込み
 	ft, err := fontfileRead(TRUETYPE_GOTHIC)
 	if err != nil {

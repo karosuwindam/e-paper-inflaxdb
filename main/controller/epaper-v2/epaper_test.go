@@ -2,6 +2,7 @@ package epaperv2
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	"testing"
@@ -10,6 +11,9 @@ import (
 
 func TestEPaper(t *testing.T) {
 	e := CreateEpd()
+	if err := e.Open(); err != nil {
+		t.Fatalf("open error %v", err.Error())
+	}
 	defer e.Close()
 	defer e.Clear()
 	e.Init()
@@ -21,15 +25,29 @@ func TestEPaper(t *testing.T) {
 	e.Black()
 	fmt.Printf("sleeping\n")
 	time.Sleep(5 * time.Second)
-	bufferReader := bytes.NewReader(writedata(strWriteData{[]string{"test"}, 20}))
+	ctx := contextWriteWriteData(context.Background(), []string{"test", "test2"}, 20)
+	bufferReader := bytes.NewReader(writedata(ctx))
 
-	image, _, err := image.Decode(bufferReader)
+	img, _, err := image.Decode(bufferReader)
 	if err != nil {
 		return
 	}
+	e.AddLayer(img, 0, 0, true)
+	e.PrintDisplay(true)
+	fmt.Printf("sleeping\n")
+	time.Sleep(5 * time.Second)
+	e.Clear()
+	//re Open Test
+	e.Close()
+	e.Open()
+	ctx = contextWriteWriteData(context.Background(), []string{"test2", "test3"}, 20)
+	bufferReader = bytes.NewReader(writedata(ctx))
 
-	e.AddLayer(image, 0, 0, true)
-
+	img, _, err = image.Decode(bufferReader)
+	if err != nil {
+		return
+	}
+	e.AddLayer(img, 0, 0, true)
 	e.PrintDisplay(true)
 	fmt.Printf("sleeping\n")
 	time.Sleep(5 * time.Second)
