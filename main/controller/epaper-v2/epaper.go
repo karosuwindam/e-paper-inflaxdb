@@ -3,8 +3,11 @@ package epaperv2
 import (
 	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	"time"
 
+	"github.com/anthonynsimon/bild/paint"
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
@@ -15,24 +18,35 @@ import (
 
 // Epd is basic struc for Waveshare eps2in13bc
 type Epd struct {
-	Width   int
-	Height  int
-	port    spi.PortCloser
-	spiConn spi.Conn
-	rstPin  gpio.PinIO
-	dcPin   gpio.PinIO
-	csPin   gpio.PinIO
-	busyPin gpio.PinIO
+	Width             int
+	Height            int
+	lineWidth         int
+	StartTransmission byte
+	port              spi.PortCloser
+	spiConn           spi.Conn
+	rstPin            gpio.PinIO
+	dcPin             gpio.PinIO
+	csPin             gpio.PinIO
+	busyPin           gpio.PinIO
+
+	Display draw.Image
 }
 
 // CreateEpd is constructor for Epd
 func CreateEpd() Epd {
 	e := Epd{
-		Width:  122,
-		Height: 250,
-		// Width:  176,
-		// Height: 264,
+		// Width:  122,
+		// Height: 250,
+		Width:             176,
+		Height:            264,
+		StartTransmission: 0x24,
 	}
+
+	lineWidth := e.Width / 8
+	if e.Width%8 != 0 {
+		lineWidth++
+	}
+	e.lineWidth = lineWidth
 
 	var err error
 
@@ -57,6 +71,9 @@ func CreateEpd() Epd {
 	e.csPin = gpioreg.ByName("GPIO8")    // out
 	e.busyPin = gpioreg.ByName("GPIO24") // in
 
+	e.Display = paint.FloodFill(
+		image.NewRGBA(image.Rect(0, 0, e.Width, e.Height)),
+		image.Point{0, 0}, color.RGBA64{255, 255, 255, 255}, 255)
 	return e
 }
 
@@ -113,8 +130,19 @@ func (e *Epd) Sleep() {
 	time.Sleep(100 * time.Millisecond)
 }
 
+func (e *Epd) PrintDisplay(isHorizon bool) {
+	imgArray := e.convert(isHorizon)
+
+	e.sendCommand(e.StartTransmission)
+
+	for _, b := range imgArray {
+		e.sendData(b)
+	}
+	e.TurnDisplayOn()
+}
+
 // Display sends an image to epd
-func (e *Epd) Display(image []byte) {
+func (e *Epd) DisplayView(image []byte) {
 	lineWidth := e.Width / 8
 	if e.Width%8 != 0 {
 		lineWidth++
@@ -131,55 +159,97 @@ func (e *Epd) Display(image []byte) {
 // TurnDisplayOn turn the epd on
 func (e *Epd) TurnDisplayOn() {
 	e.sendCommand(0x22)
-	e.sendData(0xC7)
+	e.sendData(0xF7)
 	e.sendCommand(0x20)
 	e.readBusy()
 }
 
-var lutFullUpdate = []byte{
-	0x80, 0x60, 0x40, 0x00, 0x00, 0x00, 0x00,
-	0x10, 0x60, 0x20, 0x00, 0x00, 0x00, 0x00,
-	0x80, 0x60, 0x40, 0x00, 0x00, 0x00, 0x00,
-	0x10, 0x60, 0x20, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-	0x03, 0x03, 0x00, 0x00, 0x02,
-	0x09, 0x09, 0x00, 0x00, 0x02,
-	0x03, 0x03, 0x00, 0x00, 0x02,
-	0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00,
-
-	0x15, 0x41, 0xA8, 0x32, 0x30, 0x0A,
+var lutData4Gray = []byte{
+	0x40, 0x48, 0x80, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x8, 0x48, 0x10, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x2, 0x48, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x20, 0x48, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0xA, 0x19, 0x0, 0x3, 0x8, 0x0, 0x0,
+	0x14, 0x1, 0x0, 0x14, 0x1, 0x0, 0x3,
+	0xA, 0x3, 0x0, 0x8, 0x19, 0x0, 0x0,
+	0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+	0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x0, 0x0, 0x0,
+	0x22, 0x17, 0x41, 0x0, 0x32, 0x1C,
 }
+
+// var lutFullUpdate = []byte{
+// 	0x80, 0x60, 0x40, 0x00, 0x00, 0x00, 0x00,
+// 	0x10, 0x60, 0x20, 0x00, 0x00, 0x00, 0x00,
+// 	0x80, 0x60, 0x40, 0x00, 0x00, 0x00, 0x00,
+// 	0x10, 0x60, 0x20, 0x00, 0x00, 0x00, 0x00,
+// 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+// 	0x03, 0x03, 0x00, 0x00, 0x02,
+// 	0x09, 0x09, 0x00, 0x00, 0x02,
+// 	0x03, 0x03, 0x00, 0x00, 0x02,
+// 	0x00, 0x00, 0x00, 0x00, 0x00,
+// 	0x00, 0x00, 0x00, 0x00, 0x00,
+// 	0x00, 0x00, 0x00, 0x00, 0x00,
+// 	0x00, 0x00, 0x00, 0x00, 0x00,
+
+// 	0x15, 0x41, 0xA8, 0x32, 0x30, 0x0A,
+// }
 
 // Init starts the epd
 func (e *Epd) Init() {
+	// e.reset()
+	// e.readBusy()
+	// e.executeCommandAndLog(0x12, "SOFT_RESET", nil)
+	// e.readBusy()
+	// e.executeCommandAndLog(0x74, "SET_ANALOG_BLOCK_CONTROL", []byte{0x54})
+	// e.executeCommandAndLog(0x7E, "SET_DIGITAL_BLOCK_CONTROL", []byte{0x3B})
+	// e.executeCommandAndLog(0x01, "DRIVER_OUTPUT_CONTROL", []byte{0xF9, 0x0, 0x0})
+	// e.executeCommandAndLog(0x11, "DATA_ENTRY_MODE", []byte{0x01})
+	// e.executeCommandAndLog(0x44, "SET_X-RAM_START_END_POSITION - Second data byte 0x0C-->(15+1)*8=128", []byte{0x0, 0x0F})
+	// e.executeCommandAndLog(0x45, "SET_X-RAM_START_END_POSITION - First data byte 0xF9-->(249+1)=250", []byte{0xF9, 0x0, 0x0, 0x0})
+	// e.executeCommandAndLog(0x3C, "BorderWavefrom", []byte{0x03})
+	// e.executeCommandAndLog(0x2C, "VCOM_VOLTAGE", []byte{0x55})
+	// e.executeCommandAndLog(0x03, "lut_full_update[70]", []byte{lutFullUpdate[70]})
+	// e.executeCommandAndLog(0x04, "lut_full_update[71-72-73]", []byte{lutFullUpdate[71], lutFullUpdate[72], lutFullUpdate[73]})
+	// e.executeCommandAndLog(0x3A, "DUMMY_LINE", []byte{lutFullUpdate[74]})
+	// e.executeCommandAndLog(0x3B, "GATE_TIME", []byte{lutFullUpdate[75]})
+	// e.executeCommandAndLog(0x32, "lut_full_update[0:70]", nil)
+	// for i := 0; i < 70; i++ {
+	// 	e.sendData(lutFullUpdate[i])
+	// }
+	// e.executeCommandAndLog(0x4E, "SET_X-RAM_ADDRESS_COUNT_TO_ZERO", []byte{0x0})
+	// e.executeCommandAndLog(0x4F, "SET_Y-RAM_ADDRESS_COUNT_TO_0x127", []byte{0xF9, 0x0})
+	// e.readBusy()
+
+	// fmt.Println("INIT DONE")
+	// time.Sleep(100 * time.Millisecond)
+	//EPD hardware init start
 	e.reset()
 	e.readBusy()
+
+	//SWRESET
 	e.executeCommandAndLog(0x12, "SOFT_RESET", nil)
 	e.readBusy()
-	e.executeCommandAndLog(0x74, "SET_ANALOG_BLOCK_CONTROL", []byte{0x54})
-	e.executeCommandAndLog(0x7E, "SET_DIGITAL_BLOCK_CONTROL", []byte{0x3B})
-	e.executeCommandAndLog(0x01, "DRIVER_OUTPUT_CONTROL", []byte{0xF9, 0x0, 0x0})
-	e.executeCommandAndLog(0x11, "DATA_ENTRY_MODE", []byte{0x01})
-	e.executeCommandAndLog(0x44, "SET_X-RAM_START_END_POSITION - Second data byte 0x0C-->(15+1)*8=128", []byte{0x0, 0x0F})
-	e.executeCommandAndLog(0x45, "SET_X-RAM_START_END_POSITION - First data byte 0xF9-->(249+1)=250", []byte{0xF9, 0x0, 0x0, 0x0})
-	e.executeCommandAndLog(0x3C, "BorderWavefrom", []byte{0x03})
-	e.executeCommandAndLog(0x2C, "VCOM_VOLTAGE", []byte{0x55})
-	e.executeCommandAndLog(0x03, "lut_full_update[70]", []byte{lutFullUpdate[70]})
-	e.executeCommandAndLog(0x04, "lut_full_update[71-72-73]", []byte{lutFullUpdate[71], lutFullUpdate[72], lutFullUpdate[73]})
-	e.executeCommandAndLog(0x3A, "DUMMY_LINE", []byte{lutFullUpdate[74]})
-	e.executeCommandAndLog(0x3B, "GATE_TIME", []byte{lutFullUpdate[75]})
-	e.executeCommandAndLog(0x32, "lut_full_update[0:70]", nil)
-	for i := 0; i < 70; i++ {
-		e.sendData(lutFullUpdate[i])
-	}
-	e.executeCommandAndLog(0x4E, "SET_X-RAM_ADDRESS_COUNT_TO_ZERO", []byte{0x0})
-	e.executeCommandAndLog(0x4F, "SET_Y-RAM_ADDRESS_COUNT_TO_0x127", []byte{0xF9, 0x0})
-	e.readBusy()
 
+	// set Ram-Y address start/end position
+	e.executeCommandAndLog(0x45, "SET_X-RAM_START_END_POSITION", []byte{0x00, 0x00, 0x07, 0x01})
+
+	// set RAM y address count to
+	e.executeCommandAndLog(0x4F, "SET Y-RAM COUNT TO", []byte{0x00, 0x00})
+
+	//data entry mode
+	e.executeCommandAndLog(0x11, "DATA_ENTRY_MODE", []byte{0x03})
+
+	e.readBusy()
 	fmt.Println("INIT DONE")
 	time.Sleep(100 * time.Millisecond)
 }
@@ -194,17 +264,35 @@ func (e *Epd) executeCommandAndLog(command byte, log string, data []byte) {
 
 // Clear sets epd display to white (0xFF)
 func (e *Epd) Clear() {
+	e.Display = paint.FloodFill(
+		image.Rect(0, 0, e.Display.Bounds().Dx(), e.Display.Bounds().Dy()),
+		image.Point{0, 0}, color.RGBA{255, 255, 255, 255}, 255)
 	lineWidth := e.Width / 8
 	if e.Width%8 != 0 {
 		lineWidth++
 	}
-	e.sendCommand(0x24)
+	e.sendCommand(e.StartTransmission)
 	for i := 0; i < e.Height; i++ {
 		for j := 0; j < lineWidth; j++ {
 			e.sendData(0xFF)
 		}
 	}
-	e.TurnDisplayOff()
+	e.TurnDisplayOn()
+}
+
+func (e *Epd) Black() {
+	lineWidth := e.Width / 8
+	if e.Width%8 != 0 {
+		lineWidth++
+	}
+	e.sendCommand(e.StartTransmission)
+	for i := 0; i < e.Height; i++ {
+		for j := 0; j < lineWidth; j++ {
+			e.sendData(0x00)
+		}
+	}
+	e.TurnDisplayOn()
+
 }
 
 // TurnDisplayOff turn the display off
@@ -212,6 +300,7 @@ func (e *Epd) TurnDisplayOff() {
 	e.sendCommand(0x22)
 	e.sendData(0xC7)
 	e.sendCommand(0x20)
+	e.readBusy()
 }
 
 // GetBuffer return the buffer from a RGBA image, this buffer

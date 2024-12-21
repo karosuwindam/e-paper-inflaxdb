@@ -35,6 +35,8 @@ github.com/grpc-ecosystem/grpc-gateway/v2 v2.23.0/go.mod h1:igFoXX2ELCW06bol23DW
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
 github.com/hqbobo/text2pic v0.0.0-20180823042751-2479e146d720 h1:ZjeibvTQbGmB4y/k+1QzEbDzR4qbDjzMKTyycLz6aLY=
 github.com/hqbobo/text2pic v0.0.0-20180823042751-2479e146d720/go.mod h1:fgapft0wMijV8gctq6YgKjnIwLk8mQfrCDJmhz8n4xI=
+github.com/icemint0828/imgedit v1.6.0 h1:bUCx4OjBOLRH97FE4vSLFFieJjULE2nxapRkbExyUEM=
+github.com/icemint0828/imgedit v1.6.0/go.mod h1:VzWPObAMGilOdE0YiR8fbO67nbVGFntRAQO1BsJ1zvE=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=
 github.com/jonboulle/clockwork v0.4.0/go.mod h1:xgRqUGwRcjKCO1vbZUEtSLrqKoPSsUpK7fnezOII0kc=

@@ -41,6 +41,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.23.0 // indirect
 	github.com/hqbobo/text2pic v0.0.0-20180823042751-2479e146d720 // indirect
+	github.com/icemint0828/imgedit v1.6.0 // indirect
 	github.com/k0kubun/pp/v3 v3.2.0 // indirect
 	github.com/m-mizutani/goerr v0.1.11 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
