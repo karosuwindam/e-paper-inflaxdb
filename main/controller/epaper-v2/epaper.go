@@ -132,7 +132,7 @@ func (e *Epd) readBusy() {
 
 // Sleep powers off the epd
 func (e *Epd) Sleep() {
-	e.executeCommandAndLog(0x10, "DEEP_SLEEP", []byte{0x03})
+	e.executeCommandAndLog(0x10, "DEEP_SLEEP", []byte{0x01})
 	time.Sleep(100 * time.Millisecond)
 }
 

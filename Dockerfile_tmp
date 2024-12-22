@@ -16,7 +16,7 @@ FROM dtcooper/raspberrypi-os:bookworm
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y locales locales-all curl && \
+    apt-get install -y locales locales-all curl fonts-ipaexfont && \
     apt-get clean &&\
     rm -rf /var/lib/apt/lists/*
 WORKDIR /app
