@@ -39,7 +39,7 @@ func CreateEpd() Epd {
 		// Height: 250,
 		Width:             176,
 		Height:            264,
-		StartTransmission: 0x24,
+		StartTransmission: REG_WRITE_RAM_BW,
 	}
 
 	lineWidth := e.Width / 8
@@ -106,7 +106,7 @@ func (e *Epd) sendCommand(command byte) {
 	r := make([]byte, len(c))
 	e.spiConn.Tx(c, r)
 	e.csPin.Out(true)
-	e.readBusy()
+	// e.readBusy()
 }
 
 // sendData sets DC ping high and sends byte over SPI
@@ -117,14 +117,14 @@ func (e *Epd) sendData(data byte) {
 	r := make([]byte, len(c))
 	e.spiConn.Tx(c, r)
 	e.csPin.Out(true)
-	e.readBusy()
+	// e.readBusy()
 }
 
 // ReadBusy waits for epd
 func (e *Epd) readBusy() {
 	//
-	// 0: idle
-	// 1: busy
+	// 1: idle
+	// 0: busy
 	for e.busyPin.Read() == gpio.High {
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -132,7 +132,7 @@ func (e *Epd) readBusy() {
 
 // Sleep powers off the epd
 func (e *Epd) Sleep() {
-	e.executeCommandAndLog(0x10, "DEEP_SLEEP", []byte{0x01})
+	e.executeCommandAndLog(REG_DEEP_SLEEP_MODE, "DEEP_SLEEP", []byte{0x01})
 	time.Sleep(100 * time.Millisecond)
 }
 
@@ -160,14 +160,6 @@ func (e *Epd) DisplayView(image []byte) {
 		}
 	}
 	e.TurnDisplayOn()
-}
-
-// TurnDisplayOn turn the epd on
-func (e *Epd) TurnDisplayOn() {
-	e.sendCommand(0x22)
-	e.sendData(0xF7)
-	e.sendCommand(0x20)
-	e.readBusy()
 }
 
 var lutData4Gray = []byte{
@@ -199,19 +191,18 @@ func (e *Epd) Init() {
 	e.readBusy()
 
 	//SWRESET
-	e.executeCommandAndLog(0x12, "SOFT_RESET", nil)
+	e.executeCommandAndLog(REG_SW_RESET, "SOFT_RESET", nil)
 	e.readBusy()
 
-	// set Ram-Y address start/end position
-	e.executeCommandAndLog(0x45, "SET_X-RAM_START_END_POSITION", []byte{0x00, 0x00, 0x07, 0x01})
+	// set Ram-Y address start/end position s=0 e=264
+	e.executeCommandAndLog(REG_SET_RAM_Y_SE, "SET_Y-RAM_START_END_POSITION", []byte{0x00, 0x00, 0x07, 0x01})
 
-	// set RAM y address count to
-	e.executeCommandAndLog(0x4F, "SET Y-RAM COUNT TO", []byte{0x00, 0x00})
+	// set RAM y address count to 0
+	e.executeCommandAndLog(REG_SET_RAM_Y_ADDRESS_COUNTER, "SET Y-RAM COUNT TO", []byte{0x00, 0x00})
 
 	//data entry mode
-	e.executeCommandAndLog(0x11, "DATA_ENTRY_MODE", []byte{0x03})
+	e.executeCommandAndLog(REG_DATA_ENTRY_MODE_SETTING, "DATA_ENTRY_MODE", []byte{0x03})
 
-	e.readBusy()
 	slog.Debug("INIT DONE")
 	time.Sleep(100 * time.Millisecond)
 }
@@ -257,9 +248,22 @@ func (e *Epd) Black() {
 
 }
 
+// TurnDisplayOn turn the epd on
+func (e *Epd) TurnDisplayOn() {
+	// e.sendCommand(REG_DISPLAY_UPDATE_CTL_2)
+	// e.sendData(0xF7)
+	e.executeCommandAndLog(
+		REG_DISPLAY_UPDATE_CTL_2,
+		"reg dispay update control 2",
+		[]byte{0xF7},
+	)
+	e.sendCommand(REG_MASTER_ACTIVATION)
+	e.readBusy()
+}
+
 // TurnDisplayOff turn the display off
 func (e *Epd) TurnDisplayOff() {
-	e.sendCommand(0x22)
+	e.sendCommand(REG_DISPLAY_UPDATE_CTL_2)
 	e.sendData(0xC7)
-	e.sendCommand(0x20)
+	e.sendCommand(REG_MASTER_ACTIVATION)
 }
