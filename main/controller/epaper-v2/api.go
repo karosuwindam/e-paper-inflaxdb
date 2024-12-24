@@ -15,6 +15,7 @@ type api struct {
 
 func Init() (*api, error) {
 	e := CreateEpd()
+	e.Init()
 	return &api{device: e}, nil
 }
 
