@@ -60,6 +60,7 @@ func (e *Epd) Open() error {
 	_, err = host.Init()
 	if err != nil {
 		slog.Error("host Init error", "error", err)
+		return err
 	}
 	// SPI
 	e.port, err = spireg.Open("")

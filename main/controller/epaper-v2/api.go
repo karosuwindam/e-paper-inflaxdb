@@ -15,6 +15,10 @@ type api struct {
 
 func Init() (*api, error) {
 	e := CreateEpd()
+	if err := e.Open(); err != nil {
+		return &api{}, err
+	}
+	defer e.Close()
 	e.Init()
 	return &api{device: e}, nil
 }
@@ -27,7 +31,10 @@ func (a *api) ClearScreen(ctx context.Context) {
 	ctx, span := config.TracerS(ctx, "epaper.ClearScreen", "epaper")
 	defer span.End()
 	slog.DebugContext(ctx, "Clearing screen")
-	a.device.Open()
+	if err := a.device.Open(); err != nil {
+		slog.ErrorContext(ctx, "spi deice open error", "error", err)
+		return
+	}
 	defer a.device.Close()
 	a.device.Clear()
 	time.Sleep(3 * time.Second)
