@@ -11,8 +11,11 @@ type TracerData struct {
 
 type OutURLData struct {
 	PrometheusUrl string `env:"URL_PROM" envDefault:"http://prometheus.bookserver.home"`
-	InfluxDBUrl   string `env:"URL_INFLUX" envDefault:"http://192.168.0.6:8086"`
-	ModuleType    bool   `env:"V2_FLAG" envDefault:"false"`
+	// PrometheusUrl string `env:"URL_PROM" envDefault:"http://localhost:9090"`
+	InfluxDBUrl string `env:"URL_INFLUX" envDefault:"http://192.168.0.6:8086"`
+	ModuleType  bool   `env:"V2_FLAG" envDefault:"true"`
+	Mirror      bool   `env:"V2_IMG_MIRROR" envDefault:"false"`
+	InitClear   bool   `env:"INIT_CLEAR_FLAG" envDefault:"false"`
 }
 
 var TraData TracerData

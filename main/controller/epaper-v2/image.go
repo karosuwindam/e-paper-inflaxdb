@@ -2,6 +2,7 @@ package epaperv2
 
 import (
 	"bytes"
+	"epaperifdb/config"
 	"image"
 	"image/color"
 	"image/draw"
@@ -33,11 +34,15 @@ func (e *Epd) AddLayer(img image.Image, startX, startY int, transparent bool) {
 
 // Convert the input image into a ready-to-display byte buffer.
 func (e *Epd) convert(isHorizon bool) []byte {
-
+	var dstImg image.Image
 	var clearBackground byte = 0x00
-	c := imgedit.NewConverter(e.Display)
-	c.Reverse(isHorizon)
-	dstImg := c.Convert()
+	if config.OutURL.Mirror {
+		c := imgedit.NewConverter(e.Display)
+		c.Reverse(isHorizon)
+		dstImg = c.Convert()
+	} else {
+		dstImg = e.Display
+	}
 
 	// Processing each line from the original image. If image is too large, we'll cap to the screen size.
 	height := dstImg.Bounds().Dy()

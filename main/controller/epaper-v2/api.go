@@ -20,6 +20,11 @@ func Init() (*api, error) {
 	}
 	defer e.Close()
 	e.Init()
+
+	if config.OutURL.InitClear {
+		e.Clear()
+		time.Sleep(3 * time.Second)
+	}
 	return &api{device: e}, nil
 }
 
