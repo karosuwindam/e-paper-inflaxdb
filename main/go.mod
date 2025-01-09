@@ -27,6 +27,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	golang.org/x/image v0.18.0
 	google.golang.org/grpc v1.68.0
+	periph.io/x/conn/v3 v3.7.1
+	periph.io/x/host/v3 v3.8.2
 )
 
 require (
@@ -39,6 +41,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.23.0 // indirect
 	github.com/hqbobo/text2pic v0.0.0-20180823042751-2479e146d720 // indirect
+	github.com/icemint0828/imgedit v1.6.0 // indirect
 	github.com/k0kubun/pp/v3 v3.2.0 // indirect
 	github.com/m-mizutani/goerr v0.1.11 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

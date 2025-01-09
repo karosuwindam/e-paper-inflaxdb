@@ -61,7 +61,9 @@ func createPrometheusUrl(ctx context.Context, query string) string {
 		return ""
 	}
 	baseUrl := config.OutURL.PrometheusUrl
-	query = "senser_data"
+	if query == "" {
+		query = "senser_data"
+	}
 	baseUrl += "/api/v1/query_range?query=" + query
 	timenow := time.Now().UTC()
 	baseUrl += "&start=" + timenow.Add(-backdate).Format("2006-01-02T15:04:05.000Z")
@@ -214,4 +216,22 @@ func getprometheusJsonData(ctx context.Context) []byte {
 		return []byte{}
 	}
 	return byteArray
+}
+
+func readVlue(ctx context.Context, dataname string) convertTypeValues {
+
+	url := createPrometheusUrl(ctx, dataname)
+
+	ctx = contextWriteUrl(ctx, url)
+	pdata := getprometheusJsonData(ctx)
+	data := convertPrometheusData(ctx, pdata)
+	return data.convertTypeValue(ctx)
+}
+
+func margeValue(a, b convertTypeValues) convertTypeValues {
+	tmps := map[string]typesPromethValue(a)
+	for name, v := range b {
+		tmps[name] = v
+	}
+	return tmps
 }

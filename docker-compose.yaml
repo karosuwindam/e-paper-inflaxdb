@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  epd:
+    image: epd
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    environment:
+      - TRACER_GRPC_URL=otel-collector:4317
+      - TRACER_ON=false
+      - V2_FLAG=true
+      - URL_PROM=http://prometheus.bookserver.home
+  

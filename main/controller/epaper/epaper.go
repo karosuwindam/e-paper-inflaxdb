@@ -35,6 +35,9 @@ func initEpaper() error {
 	}
 	slog.Debug("E-paper device initialized")
 	epd.Init()
+	if config.OutURL.InitClear {
+		epd.ClearScreen()
+	}
 	device = epd
 	return nil
 }

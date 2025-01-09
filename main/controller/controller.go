@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"epaperifdb/config"
 	"errors"
 	"log/slog"
 	"time"
@@ -28,8 +29,14 @@ loop:
 		case <-oneshot:
 			slog.DebugContext(ctx, "onshot run ePaperUpdate")
 			//e-paperの更新
-			if err := ePaperUpdate(ctx); err != nil {
-				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
+			if config.OutURL.ModuleType {
+				if err := ePaperUpdatev2(ctx); err != nil {
+					slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
+				}
+			} else {
+				if err := ePaperUpdate(ctx); err != nil {
+					slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
+				}
 			}
 		case <-shutdown:
 			slog.DebugContext(ctx, "run shutdown")
@@ -38,8 +45,14 @@ loop:
 		case <-time.After(time.Minute * 5): // 5 minutes
 			slog.DebugContext(ctx, "loop time after 5 run ePaperUpdate")
 			//e-paperの更新
-			if err := ePaperUpdate(ctx); err != nil {
-				slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
+			if config.OutURL.ModuleType {
+				if err := ePaperUpdatev2(ctx); err != nil {
+					slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
+				}
+			} else {
+				if err := ePaperUpdate(ctx); err != nil {
+					slog.ErrorContext(ctx, "Failed to update e-paper", "error", err.Error())
+				}
 			}
 		case <-ctx.Done():
 			slog.DebugContext(ctx, "run ctx Done()")
