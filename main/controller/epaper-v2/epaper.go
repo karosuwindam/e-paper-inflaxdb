@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"image/draw"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/anthonynsimon/bild/paint"
@@ -77,10 +78,17 @@ func (e *Epd) Open() error {
 	slog.Debug("SPI Open", "conn", e.spiConn)
 
 	// GPIO - read
-	e.rstPin = gpioreg.ByName("GPIO17")  // out
-	e.dcPin = gpioreg.ByName("GPIO25")   // out
-	e.csPin = gpioreg.ByName("GPIO8")    // out
-	e.busyPin = gpioreg.ByName("GPIO24") // in
+	if checkGpioMemo0() {
+		e.rstPin = gpioreg.ByName(GPIO_RST_PI5)   // out
+		e.dcPin = gpioreg.ByName(GPIO_DC_PI5)     // out
+		e.csPin = gpioreg.ByName(GPIO_CS_PI5)     // out
+		e.busyPin = gpioreg.ByName(GPIO_BUSY_PI5) // in
+	} else {
+		e.rstPin = gpioreg.ByName(GPIO_RST)   // out
+		e.dcPin = gpioreg.ByName(GPIO_DC)     // out
+		e.csPin = gpioreg.ByName(GPIO_CS)     // out
+		e.busyPin = gpioreg.ByName(GPIO_BUSY) // in
+	}
 	return nil
 }
 
@@ -267,4 +275,12 @@ func (e *Epd) TurnDisplayOff() {
 	e.sendCommand(REG_DISPLAY_UPDATE_CTL_2)
 	e.sendData(0xC7)
 	e.sendCommand(REG_MASTER_ACTIVATION)
+}
+
+// フォルダの存在確認
+func checkGpioMemo0() bool {
+	if _, err := os.Stat(CHECKPASS); os.IsNotExist(err) {
+		return false
+	}
+	return true
 }

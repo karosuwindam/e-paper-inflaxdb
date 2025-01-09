@@ -51,3 +51,15 @@ const (
 	REG_SET_RAM_Y_ADDRESS_COUNTER            = 0x4F
 	REG_NOP                                  = 0x7F
 )
+
+const (
+	CHECKPASS     string = "/sys/class/gpiomem0"
+	GPIO_RST      string = "GPIO17"
+	GPIO_DC       string = "GPIO25"
+	GPIO_CS       string = "GPIO8"
+	GPIO_BUSY     string = "GPIO24"
+	GPIO_RST_PI5  string = "GPIO588"
+	GPIO_DC_PI5   string = "GPIO596"
+	GPIO_CS_PI5   string = "GPIO579"
+	GPIO_BUSY_PI5 string = "GPIO595"
+)

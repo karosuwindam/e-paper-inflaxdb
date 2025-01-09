@@ -3,13 +3,17 @@ package epaperv2
 import (
 	"bytes"
 	"context"
+	"epaperifdb/config"
 	"fmt"
 	"image"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestEPaper(t *testing.T) {
+	os.Setenv("V2_IMG_MIRROR", "true")
+	config.Init()
 	e := CreateEpd()
 	if err := e.Open(); err != nil {
 		t.Fatalf("open error %v", err.Error())
@@ -49,7 +53,7 @@ func TestEPaper(t *testing.T) {
 		return
 	}
 	e.AddLayer(img, 0, 0, true)
-	e.PrintDisplay(true)
+	e.PrintDisplay(false)
 	fmt.Printf("sleeping\n")
 	time.Sleep(3 * time.Second)
 
