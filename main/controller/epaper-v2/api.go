@@ -63,7 +63,7 @@ func (e *Epd) testPut(ctx context.Context, x, y int, texts []string, size float6
 	}
 	defer e.Close()
 	e.AddLayer(image, x, y, true)
-	e.PrintDisplay(true)
+	e.PrintDisplay(config.OutURL.Rotate180)
 	time.Sleep(3 * time.Second)
 	return nil
 }

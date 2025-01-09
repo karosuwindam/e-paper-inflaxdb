@@ -14,8 +14,9 @@ type OutURLData struct {
 	// PrometheusUrl string `env:"URL_PROM" envDefault:"http://localhost:9090"`
 	InfluxDBUrl string `env:"URL_INFLUX" envDefault:"http://192.168.0.6:8086"`
 	ModuleType  bool   `env:"V2_FLAG" envDefault:"true"`
-	Mirror      bool   `env:"V2_IMG_MIRROR" envDefault:"false"`
+	Mirror      bool   `env:"V2_IMG_MIRROR" envDefault:"true"`
 	InitClear   bool   `env:"INIT_CLEAR_FLAG" envDefault:"false"`
+	Rotate180   bool   `env:"V2_ROTATE_180" envDefault:"true"`
 }
 
 var TraData TracerData
@@ -30,8 +31,5 @@ func Init() error {
 	if err := env.Parse(&OutURL); err != nil {
 		return err
 	}
-	// if err := logConfig(); err != nil {
-	// 	return err
-	// }
 	return nil
 }
