@@ -57,4 +57,16 @@ func TestEPaper(t *testing.T) {
 	fmt.Printf("sleeping\n")
 	time.Sleep(3 * time.Second)
 
+	e.CrearDisplayData()
+	ctx = contextWriteWriteData(context.Background(), []string{"test", "test2"}, 20)
+	bufferReader = bytes.NewReader(writedata(ctx))
+
+	img, _, err = image.Decode(bufferReader)
+	if err != nil {
+		return
+	}
+	e.AddLayer(img, 0, 0, true)
+	e.PrintDisplay(false)
+	fmt.Printf("CrearDisplayData sleeping\n")
+	time.Sleep(3 * time.Second)
 }

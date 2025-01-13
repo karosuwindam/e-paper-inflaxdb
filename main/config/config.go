@@ -6,7 +6,7 @@ type TracerData struct {
 	GrpcURL        string `env:"TRACER_GRPC_URL" envDefault:"otel-grpc.bookserver.home:4317"`
 	ServiceName    string `env:"TRACER_SERVICE_URL" envDefault:"e-paper"`
 	TracerUse      bool   `env:"TRACER_ON" envDefault:"true"`
-	ServiceVersion string `env:"TRACER_SERVICE_VERSION" envDefault:"0.0.3"`
+	ServiceVersion string `env:"TRACER_SERVICE_VERSION" envDefault:"0.0.4"`
 }
 
 type OutURLData struct {

@@ -3,6 +3,8 @@
 * V0.0.4
   * slog出力とTraceを組み込む
   * フォルダを整理
+  * 2.7inch HAT v2用のプログラムに対応
+  * Raspbery Pi5に対応
 
 * V0.0.3
   * テスト的にslogを使用

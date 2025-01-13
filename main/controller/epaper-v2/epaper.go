@@ -242,6 +242,13 @@ func (e *Epd) Clear() {
 	e.TurnDisplayOn()
 }
 
+func (e *Epd) CrearDisplayData() {
+	e.Display = paint.FloodFill(
+		image.Rect(0, 0, e.Display.Bounds().Dx(), e.Display.Bounds().Dy()),
+		image.Point{0, 0}, color.RGBA{255, 255, 255, 255}, 255)
+
+}
+
 func (e *Epd) Black() {
 	lineWidth := e.Width / 8
 	if e.Width%8 != 0 {

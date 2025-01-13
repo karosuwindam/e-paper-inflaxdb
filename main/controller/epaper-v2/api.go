@@ -45,6 +45,13 @@ func (a *api) ClearScreen(ctx context.Context) {
 	time.Sleep(3 * time.Second)
 }
 
+func (a *api) CrearDisplayData(ctx context.Context) {
+	ctx, span := config.TracerS(ctx, "epaper.ClearDisplayData", "epaper")
+	defer span.End()
+	slog.DebugContext(ctx, "Crearing Display Data")
+	a.device.CrearDisplayData()
+}
+
 func (e *Epd) testPut(ctx context.Context, x, y int, texts []string, size float64) error {
 	ctx, span := config.TracerS(ctx, "epaper.testPut", "epaper")
 	defer span.End()
