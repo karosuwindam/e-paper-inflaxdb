@@ -6,7 +6,6 @@ import (
 	"epaperifdb/config"
 	"image"
 	"log/slog"
-	"time"
 )
 
 type api struct {
@@ -23,7 +22,6 @@ func Init() (*api, error) {
 
 	if config.OutURL.InitClear {
 		e.Clear()
-		time.Sleep(3 * time.Second)
 	}
 	return &api{device: e}, nil
 }
@@ -42,7 +40,14 @@ func (a *api) ClearScreen(ctx context.Context) {
 	}
 	defer a.device.Close()
 	a.device.Clear()
-	time.Sleep(3 * time.Second)
+	// a.device.CrearDisplayData()
+}
+
+func (a *api) CrearDisplayData(ctx context.Context) {
+	ctx, span := config.TracerS(ctx, "epaper.ClearDisplayData", "epaper")
+	defer span.End()
+	slog.DebugContext(ctx, "Crearing Display Data")
+	a.device.CrearDisplayData()
 }
 
 func (e *Epd) testPut(ctx context.Context, x, y int, texts []string, size float64) error {
@@ -64,6 +69,5 @@ func (e *Epd) testPut(ctx context.Context, x, y int, texts []string, size float6
 	defer e.Close()
 	e.AddLayer(image, x, y, true)
 	e.PrintDisplay(config.OutURL.Rotate180)
-	time.Sleep(3 * time.Second)
 	return nil
 }

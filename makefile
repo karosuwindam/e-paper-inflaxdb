@@ -1,6 +1,6 @@
-TAG = 0.0.1
+TAG = 0.0.4
 DOCKER = docker
-NAME = senser-egent
+NAME = e-paper-infludb
 
 TEMPLATE = ./Dockerfile_tmp
 TARGET = ./Dockerfile

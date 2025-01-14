@@ -195,6 +195,8 @@ var lutData4Gray = []byte{
 
 // Init starts the epd
 func (e *Epd) Init() {
+	//GPIO init
+	e.busyPin.In(gpio.PullNoChange, gpio.NoEdge)
 	//EPD hardware init start
 	e.reset()
 	e.readBusy()
@@ -240,6 +242,13 @@ func (e *Epd) Clear() {
 		}
 	}
 	e.TurnDisplayOn()
+}
+
+func (e *Epd) CrearDisplayData() {
+	e.Display = paint.FloodFill(
+		image.Rect(0, 0, e.Display.Bounds().Dx(), e.Display.Bounds().Dy()),
+		image.Point{0, 0}, color.RGBA{255, 255, 255, 255}, 255)
+
 }
 
 func (e *Epd) Black() {
