@@ -195,6 +195,8 @@ var lutData4Gray = []byte{
 
 // Init starts the epd
 func (e *Epd) Init() {
+	//GPIO init
+	e.busyPin.In(gpio.PullNoChange, gpio.NoEdge)
 	//EPD hardware init start
 	e.reset()
 	e.readBusy()

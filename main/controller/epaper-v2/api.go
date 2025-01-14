@@ -43,6 +43,7 @@ func (a *api) ClearScreen(ctx context.Context) {
 	defer a.device.Close()
 	a.device.Clear()
 	time.Sleep(3 * time.Second)
+	// a.device.CrearDisplayData()
 }
 
 func (a *api) CrearDisplayData(ctx context.Context) {
