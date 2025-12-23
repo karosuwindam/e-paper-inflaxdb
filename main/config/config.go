@@ -12,11 +12,12 @@ type TracerData struct {
 type OutURLData struct {
 	PrometheusUrl string `env:"URL_PROM" envDefault:"http://prometheus.bookserver.home"`
 	// PrometheusUrl string `env:"URL_PROM" envDefault:"http://localhost:9090"`
-	InfluxDBUrl string `env:"URL_INFLUX" envDefault:"http://192.168.0.6:8086"`
-	ModuleType  bool   `env:"V2_FLAG" envDefault:"true"`
-	Mirror      bool   `env:"V2_IMG_MIRROR" envDefault:"true"`
-	InitClear   bool   `env:"INIT_CLEAR_FLAG" envDefault:"false"`
-	Rotate180   bool   `env:"V2_ROTATE_180" envDefault:"true"`
+	InfluxDBUrl  string `env:"URL_INFLUX" envDefault:"http://192.168.0.6:8086"`
+	AmadasKjName string `env:"AMEDAS_KJNAME" envDefault:"東京"`
+	ModuleType   bool   `env:"V2_FLAG" envDefault:"true"`
+	Mirror       bool   `env:"V2_IMG_MIRROR" envDefault:"true"`
+	InitClear    bool   `env:"INIT_CLEAR_FLAG" envDefault:"false"`
+	Rotate180    bool   `env:"V2_ROTATE_180" envDefault:"true"`
 }
 
 var TraData TracerData

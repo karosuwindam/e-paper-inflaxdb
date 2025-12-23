@@ -28,11 +28,17 @@ func main() {
 	}
 	defer cancel()
 	go func(ctx context.Context) {
+		if err := controller.Button_Run(ctx); err != nil {
+			panic(err)
+		}
+	}(ctx)
+	go func(ctx context.Context) {
 		if err := controller.Run(ctx); err != nil {
 			panic(err)
 		}
 	}(ctx)
 	<-sigs
+	controller.Button_Stop()
 	if err := controller.Stop(context.Background()); err != nil {
 		panic(err)
 	}

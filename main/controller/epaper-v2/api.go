@@ -23,6 +23,7 @@ func Init() (*api, error) {
 	if config.OutURL.InitClear {
 		e.Clear()
 	}
+
 	return &api{device: e}, nil
 }
 

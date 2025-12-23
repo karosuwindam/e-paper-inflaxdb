@@ -31,8 +31,20 @@ func TestGetprometheusJsonData(t *testing.T) {
 	ctx = contextWriteDataName(ctx, "tmp")
 	fmt.Println("tmp", cvalue.convertData(ctx))
 
+	ctx, _ = context.WithTimeout(context.Background(), 600*time.Second)
+	ctx = contextWriteReadUrlData(ctx, 6*time.Hour)
+
 	ctx = contextWriteDataName(ctx, "tmp2")
 	fmt.Println("tmp2", cvalue.convertData(ctx))
+	url_amdas := createPrometheusUrl(ctx, "amedas_Temp")
+	fmt.Println(url_amdas)
+	ctx = contextWriteUrl(ctx, url_amdas)
+	pdata_amdas := getprometheusJsonData(ctx)
+	fmt.Println(pdata_amdas)
+	data_amdas := convertPrometheusData(ctx, pdata_amdas)
+	cvalue_amdas := data_amdas.convertTypeValue(ctx)
+	fmt.Println(cvalue_amdas)
+
 }
 
 func TestGetprometheus2(t *testing.T) {

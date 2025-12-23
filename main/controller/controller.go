@@ -9,24 +9,27 @@ import (
 )
 
 var (
-	shutdown chan struct{}
-	done     chan struct{}
+	shutdown        chan struct{}
+	shutdown_button chan struct{}
+	done            chan struct{}
+	re_new          chan bool
 )
 
 func Init() error {
 	shutdown = make(chan struct{}, 1)
 	done = make(chan struct{}, 1)
+	shutdown_button = make(chan struct{}, 1)
 	return nil
 }
 
 func Run(ctx context.Context) error {
-	var oneshot chan bool = make(chan bool, 1)
-	oneshot <- true
+	re_new = make(chan bool, 1)
+	re_new <- true
 	slog.InfoContext(ctx, "Controller Run")
 loop:
 	for {
 		select {
-		case <-oneshot:
+		case <-re_new:
 			slog.DebugContext(ctx, "onshot run ePaperUpdate")
 			//e-paperの更新
 			if config.OutURL.ModuleType {

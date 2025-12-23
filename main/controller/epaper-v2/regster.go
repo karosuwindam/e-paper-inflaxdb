@@ -53,13 +53,23 @@ const (
 )
 
 const (
-	CHECKPASS     string = "/sys/class/gpiomem0"
-	GPIO_RST      string = "GPIO17"
-	GPIO_DC       string = "GPIO25"
-	GPIO_CS       string = "GPIO8"
-	GPIO_BUSY     string = "GPIO24"
+	CHECKPASS string = "/sys/class/gpiomem0"
+	GPIO_RST  string = "GPIO17"
+	GPIO_DC   string = "GPIO25"
+	GPIO_CS   string = "GPIO8"
+	GPIO_BUSY string = "GPIO24"
+	GPIO_KEY1 string = "GPIO05"
+	GPIO_KEY2 string = "GPIO06"
+	GPIO_KEY3 string = "GPIO13"
+	GPIO_KEY4 string = "GPIO19"
+
+	// for PI5
 	GPIO_RST_PI5  string = "GPIO588"
 	GPIO_DC_PI5   string = "GPIO596"
 	GPIO_CS_PI5   string = "GPIO579"
 	GPIO_BUSY_PI5 string = "GPIO595"
+	GPIO_KEY1_PI5 string = "GPIO574"
+	GPIO_KEY2_PI5 string = "GPIO575"
+	GPIO_KEY3_PI5 string = "GPIO582"
+	GPIO_KEY4_PI5 string = "GPIO588"
 )
